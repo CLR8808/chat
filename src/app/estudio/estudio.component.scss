@@ -1,0 +1,253 @@
+:host {
+  --primary: #0052cc;
+  --bg-color: #f7faff;
+}
+
+.page-content {
+  --background: var(--bg-color);
+
+  &::part(scroll) {
+    padding-bottom: 90px;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 20px 16px;
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 22px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #047857;
+      margin: 0;
+    }
+  }
+
+  .logout-btn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-size: 24px;
+    cursor: pointer;
+  }
+}
+
+.content-container {
+  padding: 0 20px 40px;
+}
+
+.banner-card {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  border-radius: 18px;
+  padding: 20px;
+  color: #ffffff;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+
+  h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 6px;
+  }
+
+  p {
+    font-size: 13.5px;
+    opacity: 0.95;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px 20px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+
+  ion-icon {
+    font-size: 56px;
+    color: #10b981;
+    margin-bottom: 14px;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 6px;
+  }
+
+  p {
+    font-size: 13.5px;
+    color: #64748b;
+    margin: 0 0 18px;
+  }
+
+  .create-study-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #047857;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+.loading-state {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+}
+
+.rooms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.study-room-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  border-left: 5px solid #10b981;
+  cursor: pointer;
+
+  .room-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #d1fae5;
+    color: #047857;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .room-details {
+    flex: 1;
+    min-width: 0;
+
+    h4 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 4px;
+    }
+
+    p {
+      font-size: 13px;
+      color: #64748b;
+      margin: 0 0 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .meta-tag {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #047857;
+        background: #ecfdf5;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+
+      .meta-members {
+        font-size: 11.5px;
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.03);
+
+  .nav-item {
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: #64748b;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+
+    ion-icon {
+      font-size: 22px;
+    }
+
+    .nav-pill {
+      background-color: #6ee7b7;
+      border-radius: 16px;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #064e3b;
+      font-weight: 800;
+      font-size: 13px;
+
+      ion-icon {
+        font-size: 20px;
+        color: #064e3b;
+      }
+    }
+  }
+}

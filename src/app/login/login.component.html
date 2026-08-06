@@ -1,0 +1,97 @@
+<ion-content [fullscreen]="true" class="login-content">
+
+  <!-- Círculos de fondo con luz difusa -->
+  <div class="bg-circle bg-blue"></div>
+  <div class="bg-circle bg-green"></div>
+
+  <div class="login-wrapper">
+
+    <!-- Logo & Header -->
+    <div class="logo-section">
+      <div class="logo-icon">
+        <ion-icon name="chatbox-ellipses-outline"></ion-icon>
+      </div>
+
+      <h1>Chat Aula</h1>
+      <p>Comunicación en tiempo real para estudiantes</p>
+    </div>
+
+    <!-- Card Principal -->
+    <div class="login-card">
+      <h2>Bienvenido</h2>
+      <span class="subtitle">USA TU CORREO PARA ENTRAR AL CHAT</span>
+
+      <div *ngIf="errorMessage" class="error-banner">
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <!-- Email Input -->
+        <div class="field">
+          <label>Correo Electrónico</label>
+          <div class="input-box">
+            <ion-icon name="mail-outline" class="left-icon"></ion-icon>
+            <ion-input
+              type="email"
+              placeholder="tu@universidad.edu"
+              formControlName="email">
+            </ion-input>
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="field">
+          <div class="password-header">
+            <label>Contraseña</label>
+            <a (click)="forgotPassword()">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <div class="input-box">
+            <ion-icon name="lock-closed-outline" class="left-icon"></ion-icon>
+            <ion-input
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              formControlName="password">
+            </ion-input>
+            <ion-button fill="clear" class="eye-button" (click)="togglePassword()" type="button">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Iniciar Sesión Button -->
+        <ion-button expand="block" class="login-button" type="submit" [disabled]="isLoading">
+          <span *ngIf="!isLoading">Iniciar sesión</span>
+          <span *ngIf="isLoading">Verificando...</span>
+          <ion-icon slot="end" name="arrow-forward-outline" *ngIf="!isLoading"></ion-icon>
+        </ion-button>
+      </form>
+
+      <div class="separator"></div>
+
+      <!-- Crear Cuenta Section -->
+      <p class="register-text">¿No tienes una cuenta todavía?</p>
+
+      <button class="register-button" (click)="createAccount()" type="button">
+        Crear cuenta
+        <ion-icon name="person-add-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div>
+        <ion-icon name="school-outline"></ion-icon>
+        Académico
+      </div>
+      <div>
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        Seguro
+      </div>
+    </div>
+
+    <span class="copyright">© 2024 CHAT AULA ECOSYSTEM</span>
+
+  </div>
+
+</ion-content>

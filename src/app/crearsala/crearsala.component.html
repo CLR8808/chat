@@ -1,0 +1,167 @@
+<ion-content [fullscreen]="true" class="crearsala-content">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="logo-icon">
+        <ion-icon name="school"></ion-icon>
+      </div>
+      <h2>Chat Aula</h2>
+    </div>
+
+    <div class="header-right">
+      <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </button>
+      <div class="user-avatar">
+        <img [src]="currentUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'" alt="Avatar" />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-container">
+
+    <!-- Volver -->
+    <button class="back-link" (click)="goBack()">
+      <ion-icon name="arrow-back"></ion-icon>
+      Volver
+    </button>
+
+    <!-- Title Section -->
+    <div class="title-section">
+      <h1>Nueva sala</h1>
+      <p>Las salas sirven para organizar conversaciones por tema</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="form-card">
+      <form [formGroup]="form" (ngSubmit)="createRoom()">
+
+        <!-- Nombre de la sala -->
+        <div class="field">
+          <label>NOMBRE DE LA SALA</label>
+          <div class="input-box">
+            <span class="hash-icon">#</span>
+            <ion-input
+              placeholder="Ej: Álgebra Lineal - Grupo A"
+              formControlName="name">
+            </ion-input>
+          </div>
+        </div>
+
+        <!-- Categoría de la sala -->
+        <div class="field">
+          <label>CATEGORÍA</label>
+          <div class="category-selector">
+            <button
+              type="button"
+              *ngFor="let cat of categories"
+              class="cat-chip"
+              [class.selected]="selectedCategory === cat.value"
+              (click)="selectCategory(cat.value)">
+              <ion-icon [name]="cat.icon"></ion-icon>
+              <span>{{ cat.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Descripción -->
+        <div class="field">
+          <label>DESCRIPCIÓN</label>
+          <div class="input-box textarea-box">
+            <ion-textarea
+              placeholder="¿De qué trata este espacio? Añade detalles para tus compañeros..."
+              formControlName="description"
+              [rows]="3">
+            </ion-textarea>
+          </div>
+        </div>
+
+        <!-- Agregar Miembros de Contactos -->
+        <div class="field">
+          <label>AGREGAR MIEMBROS A LA SALA</label>
+          <p class="field-subtext">Selecciona entre tus contactos para darles acceso:</p>
+
+          <div *ngIf="userContacts.length === 0" class="no-contacts-alert">
+            <p>No tienes contactos guardados aún. Usa el botón + en Chats para agregar contactos.</p>
+          </div>
+
+          <div class="members-chips-grid">
+            <div
+              *ngFor="let c of userContacts"
+              class="member-chip"
+              [class.active]="isMemberSelected(c.email)"
+              (click)="toggleMemberSelection(c.email)">
+              <div class="member-avatar">
+                <ion-icon name="person-outline"></ion-icon>
+              </div>
+              <span class="member-name">{{ c.displayName || c.email }}</span>
+              <ion-icon [name]="isMemberSelected(c.email) ? 'checkmark-outline' : 'add'" class="check-icon"></ion-icon>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Highlight Cards -->
+    <div class="info-card blue-card">
+      <div class="info-icon blue-icon">
+        <ion-icon name="people"></ion-icon>
+      </div>
+      <div class="info-text">
+        <h4>Colaborativo</h4>
+        <p>Cualquier estudiante asignado a la sala podrá unirse.</p>
+      </div>
+    </div>
+
+    <div class="info-card green-card">
+      <div class="info-icon green-icon">
+        <ion-icon name="shield-checkmark"></ion-icon>
+      </div>
+      <div class="info-text">
+        <h4>Organizado</h4>
+        <p>Si eliges categoría <b>Estudio</b> aparecerá en su sección especial.</p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <ion-button expand="block" class="create-btn" (click)="createRoom()" [disabled]="isLoading">
+        <ion-icon name="add-circle-outline" slot="start" *ngIf="!isLoading"></ion-icon>
+        <span>{{ isLoading ? 'Creando sala...' : 'Crear sala' }}</span>
+      </ion-button>
+
+      <button type="button" class="cancel-btn" (click)="cancel()">
+        Cancelar
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Bar / Barra de tareas -->
+  <div class="bottom-nav">
+    <button class="nav-item" (click)="navigateTo('chats')">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <span>Chats</span>
+    </button>
+
+    <button class="nav-item active" (click)="navigateTo('groups')">
+      <div class="nav-pill">
+        <ion-icon name="people"></ion-icon>
+        <span>Groups</span>
+      </div>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('study')">
+      <ion-icon name="book-outline"></ion-icon>
+      <span>Study</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('profile')">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </button>
+  </div>
+
+</ion-content>

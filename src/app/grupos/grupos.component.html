@@ -1,0 +1,142 @@
+<ion-content [fullscreen]="true" class="page-content">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <div class="icon-badge">
+        <ion-icon name="people"></ion-icon>
+      </div>
+      <h2>Grupos de chat</h2>
+    </div>
+
+    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
+      <ion-icon name="log-out-outline"></ion-icon>
+    </button>
+  </div>
+
+  <div class="content-container">
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <p>Cargando grupos...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && groupRooms.length === 0" class="empty-state">
+      <ion-icon name="people-outline"></ion-icon>
+      <h3>No hay grupos creados aún</h3>
+      <p>Pulsa en la sección Chats el botón + para crear un nuevo grupo o sala.</p>
+    </div>
+
+    <!-- Groups List -->
+    <div class="groups-list">
+      <div
+        *ngFor="let room of groupRooms"
+        class="group-card accent-{{ room.accentColor || 'blue' }}"
+        (click)="openRoom(room)">
+
+        <div class="group-icon-box {{ room.accentColor || 'blue' }}">
+          <ion-icon [name]="room.icon || 'chatbubbles-outline'"></ion-icon>
+        </div>
+
+        <div class="group-info">
+          <div class="group-header-row">
+            <h4>{{ room.name }}</h4>
+            <span class="category-badge">{{ room.category || 'General' }}</span>
+          </div>
+
+          <p class="group-desc">{{ room.description || 'Sin descripción' }}</p>
+
+          <!-- Members count and Add Member button -->
+          <div class="group-footer-row">
+            <span class="members-count">
+              <ion-icon name="person-outline"></ion-icon>
+              {{ room.members ? room.members.length : 1 }} miembro(s)
+            </span>
+
+            <button
+              class="add-member-btn"
+              (click)="openAddMemberModal(room, $event)">
+              <ion-icon name="person-add-outline"></ion-icon>
+              Agregar miembro
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal para Agregar Miembro a Grupo -->
+  <ion-modal [isOpen]="isMemberModalOpen" (didDismiss)="closeMemberModal()">
+    <ng-template>
+      <div class="modal-header">
+        <div class="modal-title">
+          <ion-icon name="person-add-outline"></ion-icon>
+          <h3>Agregar Miembro</h3>
+        </div>
+        <button class="modal-close-btn" (click)="closeMemberModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-sub">
+          Añadir miembro a la sala <b>{{ selectedRoomForMember?.name }}</b> desde tus contactos:
+        </p>
+
+        <div *ngIf="userContacts.length === 0" class="no-contacts">
+          <p>No tienes contactos guardados para añadir. Ve a la pantalla Chats y pulsa + para agregar contactos primero.</p>
+        </div>
+
+        <div class="contacts-list">
+          <div *ngFor="let c of userContacts" class="contact-item">
+            <div class="avatar-circle">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+            <div class="contact-info">
+              <h5>{{ c.displayName || c.email }}</h5>
+              <p>{{ c.email }}</p>
+            </div>
+
+            <button
+              class="action-add-btn"
+              [class.added]="isAlreadyMember(c.email)"
+              (click)="addMemberToGroup(c.email)"
+              [disabled]="isAlreadyMember(c.email)">
+              <ion-icon [name]="isAlreadyMember(c.email) ? 'checkmark-outline' : 'person-add-outline'"></ion-icon>
+              {{ isAlreadyMember(c.email) ? 'En el grupo' : 'Añadir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Bottom Navigation Bar / Barra de tareas -->
+  <div class="bottom-nav">
+    <button class="nav-item" (click)="navigateTo('chats')">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <span>Chats</span>
+    </button>
+
+    <button class="nav-item active" (click)="navigateTo('groups')">
+      <div class="nav-pill">
+        <ion-icon name="people"></ion-icon>
+        <span>Groups</span>
+      </div>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('study')">
+      <ion-icon name="book-outline"></ion-icon>
+      <span>Study</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('profile')">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </button>
+  </div>
+
+</ion-content>

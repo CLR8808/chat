@@ -1,0 +1,83 @@
+<ion-content [fullscreen]="true" class="page-content">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <div class="icon-badge">
+        <ion-icon name="book"></ion-icon>
+      </div>
+      <h2>Zona de Estudio</h2>
+    </div>
+
+    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
+      <ion-icon name="log-out-outline"></ion-icon>
+    </button>
+  </div>
+
+  <div class="content-container">
+    <div class="banner-card">
+      <h3>Salas de Estudio Colaborativo</h3>
+      <p>Espacios dedicados exclusivamente a hilos de aprendizaje, resúmenes y guías de clase.</p>
+    </div>
+
+    <!-- Study Rooms List -->
+    <div class="rooms-section">
+      <div *ngIf="isLoading" class="loading-state">
+        <p>Cargando espacios de estudio...</p>
+      </div>
+
+      <div *ngIf="!isLoading && studyRooms.length === 0" class="empty-state">
+        <ion-icon name="book-outline"></ion-icon>
+        <h3>No hay salas de estudio aún</h3>
+        <p>Crea una nueva sala seleccionando la categoría <b>Estudio</b> para verla aquí.</p>
+        <button class="create-study-btn" (click)="createStudyRoom()">
+          <ion-icon name="add"></ion-icon>
+          Crear sala de estudio
+        </button>
+      </div>
+
+      <div
+        *ngFor="let room of studyRooms"
+        class="study-room-card"
+        (click)="openRoom(room)">
+        <div class="room-icon-box">
+          <ion-icon [name]="room.icon || 'book-outline'"></ion-icon>
+        </div>
+        <div class="room-details">
+          <h4>{{ room.name }}</h4>
+          <p>{{ room.description || 'Sin descripción' }}</p>
+          <div class="room-meta">
+            <span class="meta-tag">📖 Estudio</span>
+            <span class="meta-members" *ngIf="room.members">{{ room.members.length }} miembro(s)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar / Barra de tareas -->
+  <div class="bottom-nav">
+    <button class="nav-item" (click)="navigateTo('chats')">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <span>Chats</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('groups')">
+      <ion-icon name="people-outline"></ion-icon>
+      <span>Groups</span>
+    </button>
+
+    <button class="nav-item active" (click)="navigateTo('study')">
+      <div class="nav-pill">
+        <ion-icon name="book"></ion-icon>
+        <span>Study</span>
+      </div>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('profile')">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </button>
+  </div>
+
+</ion-content>

@@ -1,0 +1,95 @@
+<ion-content [fullscreen]="true" class="conversation-content">
+
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loader-spinner"></div>
+  </div>
+
+  <!-- Header fijo -->
+  <div class="chat-header">
+    <button class="back-btn" (click)="goBack()">
+      <ion-icon name="arrow-back"></ion-icon>
+    </button>
+
+    <div class="contact-header-info">
+      <div class="contact-avatar-header" [class.group-avatar]="isGroup">
+        <ion-icon name="people-outline" *ngIf="isGroup"></ion-icon>
+        <span *ngIf="!isGroup">{{ contactInitial }}</span>
+        <div class="online-dot" *ngIf="!isGroup"></div>
+      </div>
+      <div class="contact-name-status">
+        <h3>{{ contactName }}</h3>
+        <p *ngIf="!isGroup">En línea</p>
+        <p *ngIf="isGroup">{{ memberCount }} miembro{{ memberCount !== 1 ? 's' : '' }}</p>
+      </div>
+    </div>
+
+    <button class="options-btn">
+      <ion-icon name="ellipsis-vertical"></ion-icon>
+    </button>
+  </div>
+
+  <!-- Área de mensajes -->
+  <div class="messages-area" *ngIf="!isLoading">
+
+    <!-- Estado vacío -->
+    <div class="empty-messages" *ngIf="messages.length === 0">
+      <div class="empty-avatar-big">
+        <span>{{ contactInitial }}</span>
+      </div>
+      <h4>{{ contactName }}</h4>
+      <p>Este es el inicio de tu conversación con <strong>{{ contactName }}</strong>.<br>¡Envía el primer mensaje!</p>
+    </div>
+
+    <!-- Mensajes -->
+    <ng-container *ngFor="let msg of messages; let i = index">
+
+      <!-- Separador de fecha -->
+      <div class="date-separator" *ngIf="isNewDay(i)">
+        <span>{{ formatDate(msg.sentAtDate) }}</span>
+      </div>
+
+      <!-- Burbuja de mensaje -->
+      <div class="message-wrapper" [class.own]="msg.isOwn" [class.other]="!msg.isOwn">
+
+        <!-- Avatar del otro usuario (solo en mensajes recibidos) -->
+        <div class="msg-avatar" *ngIf="!msg.isOwn">
+          <span>{{ (msg.senderName || msg.senderEmail || '?').charAt(0).toUpperCase() }}</span>
+        </div>
+
+        <div class="bubble" [class.own-bubble]="msg.isOwn" [class.other-bubble]="!msg.isOwn">
+          <!-- Nombre del remitente en grupos (solo mensajes ajenos) -->
+          <span class="sender-name" *ngIf="!msg.isOwn && isGroup">{{ msg.senderName || msg.senderEmail }}</span>
+          <p class="msg-text">{{ msg.text }}</p>
+          <div class="msg-meta">
+            <span class="msg-time">{{ formatTime(msg.sentAtDate) }}</span>
+            <ion-icon name="checkmark-done-outline" class="read-icon" *ngIf="msg.isOwn"></ion-icon>
+          </div>
+        </div>
+
+      </div>
+    </ng-container>
+
+    <!-- Ancla para scroll -->
+    <div #messagesEnd class="scroll-anchor"></div>
+  </div>
+
+  <!-- Input de mensaje fijo al fondo -->
+  <div class="message-input-bar">
+    <div class="input-wrapper">
+      <ion-input
+        class="msg-input"
+        placeholder="Escribe un mensaje..."
+        [(ngModel)]="newMessage"
+        (keydown)="onEnterKey($event)">
+      </ion-input>
+    </div>
+    <button
+      class="send-btn"
+      [class.active]="newMessage.trim().length > 0"
+      (click)="sendMessage()">
+      <ion-icon name="send"></ion-icon>
+    </button>
+  </div>
+
+</ion-content>

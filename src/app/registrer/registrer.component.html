@@ -1,0 +1,110 @@
+<ion-content [fullscreen]="true" class="register-content">
+
+  <!-- Círculos de fondo con luz difusa -->
+  <div class="bg-circle bg-blue"></div>
+  <div class="bg-circle bg-green"></div>
+
+  <div class="register-wrapper">
+
+    <!-- Logo & Header -->
+    <div class="logo-section">
+      <div class="logo-icon">
+        <ion-icon name="school"></ion-icon>
+      </div>
+
+      <h1>Chat Aula</h1>
+      <p>Tu red de estudio colaborativa</p>
+    </div>
+
+    <!-- Card Principal -->
+    <div class="register-card">
+      <h2>Crear cuenta</h2>
+
+      <div *ngIf="errorMessage" class="error-banner">
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="register()">
+
+        <!-- Email Field -->
+        <div class="field">
+          <label>Email</label>
+          <div class="input-box">
+            <ion-icon name="mail-outline" class="left-icon"></ion-icon>
+            <ion-input
+              type="email"
+              placeholder="tu@universidad.edu"
+              formControlName="email">
+            </ion-input>
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="field">
+          <label>Contraseña</label>
+          <div class="input-box">
+            <ion-icon name="lock-closed-outline" class="left-icon"></ion-icon>
+            <ion-input
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              formControlName="password">
+            </ion-input>
+            <ion-button fill="clear" class="eye-button" (click)="togglePassword()" type="button">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="field">
+          <label>Confirmar contraseña</label>
+          <div class="input-box">
+            <ion-icon name="shield-checkmark-outline" class="left-icon"></ion-icon>
+            <ion-input
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              formControlName="confirmPassword">
+            </ion-input>
+            <ion-button fill="clear" class="eye-button" (click)="toggleConfirmPassword()" type="button">
+              <ion-icon [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <ion-button expand="block" class="register-button" type="submit" [disabled]="isLoading">
+          <span *ngIf="!isLoading">Registrarme</span>
+          <span *ngIf="isLoading">Guardando en Firebase...</span>
+          <ion-icon slot="end" name="arrow-forward-outline" *ngIf="!isLoading"></ion-icon>
+        </ion-button>
+
+      </form>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>o regístrate con</span>
+      </div>
+
+      <!-- Social Register Buttons -->
+      <div class="social-buttons">
+        <button type="button" class="social-btn">
+          <ion-icon name="logo-google" class="google-icon"></ion-icon>
+          Google
+        </button>
+
+        <button type="button" class="social-btn">
+          <ion-icon name="logo-windows" class="ms-icon"></ion-icon>
+          Microsoft
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Bottom Link -->
+    <div class="bottom-login">
+      ¿Ya tengo cuenta? <span (click)="goLogin()">Ya tengo cuenta</span>
+    </div>
+
+  </div>
+
+</ion-content>

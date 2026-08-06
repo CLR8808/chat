@@ -1,0 +1,141 @@
+<ion-content [fullscreen]="true" class="chats-content">
+
+  <!-- Círculos de fondo -->
+  <div class="bg-circle bg-blue"></div>
+  <div class="bg-circle bg-green"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="user-info">
+      <div class="avatar">
+        <img [src]="currentUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'" alt="Avatar" />
+      </div>
+      <div class="user-details">
+        <h2>Salas de chat</h2>
+        <p>{{ currentUser?.email || 'alumno@correo.com' }}</p>
+      </div>
+    </div>
+
+    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
+      <ion-icon name="log-out-outline"></ion-icon>
+    </button>
+  </div>
+
+  <!-- Search Input -->
+  <div class="search-container">
+    <div class="search-box">
+      <ion-icon name="search-outline" class="search-icon"></ion-icon>
+      <ion-input
+        placeholder="Buscar sala"
+        [(ngModel)]="searchQuery"
+        class="custom-search-input">
+      </ion-input>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div class="categories-row">
+    <button
+      *ngFor="let cat of categories"
+      class="chip"
+      [class.active]="cat.active"
+      (click)="selectCategory(cat.value)">
+      {{ cat.label }}
+    </button>
+  </div>
+
+  <!-- Rooms List -->
+  <div class="rooms-list">
+    <div *ngIf="isLoading" class="loading-state">
+      <p>Cargando salas...</p>
+    </div>
+
+    <div *ngIf="!isLoading && filteredRooms.length === 0" class="empty-state-card">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <p>No hay salas en esta categoría</p>
+      <span>Pulsa + para crear una sala o agregar un contacto.</span>
+    </div>
+
+    <div
+      *ngFor="let room of filteredRooms"
+      class="room-card accent-{{ room.accentColor || 'blue' }}"
+      (click)="openRoom(room)">
+
+      <div class="icon-box {{ room.accentColor || 'blue' }}">
+        <ion-icon [name]="room.icon || 'chatbox-ellipses-outline'"></ion-icon>
+      </div>
+
+      <div class="room-content">
+        <div class="title-row">
+          <h3>{{ room.name }}</h3>
+          <span class="time-stamp">{{ room.lastMessageTime || 'Ahora' }}</span>
+        </div>
+        <div class="message-row">
+          <p class="message-text">{{ room.lastMessage || room.description || 'Sin mensajes aún' }}</p>
+          <span *ngIf="room.unreadCount" class="badge">{{ room.unreadCount }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB Overlay (fondo oscuro al abrir) -->
+  <div class="fab-overlay" *ngIf="isFabOpen" (click)="closeFab()"></div>
+
+  <!-- FAB Manual con 2 sub-botones bien separados -->
+  <div class="fab-container">
+    <!-- Sub-botones (solo visibles cuando isFabOpen) -->
+    <div class="fab-sub-buttons" *ngIf="isFabOpen">
+      <div class="fab-item" (click)="goToAddContact()">
+        <span class="fab-label">Agregar contacto</span>
+        <div class="fab-circle green-circle">
+          <ion-icon name="person-add"></ion-icon>
+        </div>
+      </div>
+
+      <div class="fab-item" (click)="goToCreateRoom()">
+        <span class="fab-label">Crear sala</span>
+        <div class="fab-circle blue-circle">
+          <ion-icon name="add"></ion-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main FAB -->
+    <button class="fab-main" [class.open]="isFabOpen" (click)="toggleFab()">
+      <ion-icon [name]="isFabOpen ? 'close-outline' : 'add'"></ion-icon>
+    </button>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="bottom-nav">
+    <button
+      class="nav-item"
+      [class.active]="activeTab === 'chats'"
+      (click)="navigateTo('chats')">
+      <div class="nav-pill" *ngIf="activeTab === 'chats'">
+        <ion-icon name="chatbubbles"></ion-icon>
+        <span>Chats</span>
+      </div>
+      <ng-container *ngIf="activeTab !== 'chats'">
+        <ion-icon name="chatbubbles"></ion-icon>
+        <span>Chats</span>
+      </ng-container>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('groups')">
+      <ion-icon name="people-outline"></ion-icon>
+      <span>Groups</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('study')">
+      <ion-icon name="book-outline"></ion-icon>
+      <span>Study</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('profile')">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </button>
+  </div>
+
+</ion-content>

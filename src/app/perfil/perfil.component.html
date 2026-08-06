@@ -1,0 +1,41 @@
+<ion-content [fullscreen]="true" class="page-content">
+
+  <div class="header">
+    <h2>Mi Perfil</h2>
+    <button class="logout-btn" (click)="logout()">
+      <ion-icon name="log-out-outline"></ion-icon>
+    </button>
+  </div>
+
+  <div class="empty-state">
+    <ion-icon name="person"></ion-icon>
+    <h3>Perfil de Estudiante</h3>
+    <p>Gestiona tu cuenta, correo universitario y preferencias.</p>
+  </div>
+
+  <!-- Bottom Navigation Bar / Barra de tareas -->
+  <div class="bottom-nav">
+    <button class="nav-item" (click)="navigateTo('chats')">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      <span>Chats</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('groups')">
+      <ion-icon name="people-outline"></ion-icon>
+      <span>Groups</span>
+    </button>
+
+    <button class="nav-item" (click)="navigateTo('study')">
+      <ion-icon name="book-outline"></ion-icon>
+      <span>Study</span>
+    </button>
+
+    <button class="nav-item active" (click)="navigateTo('profile')">
+      <div class="nav-pill">
+        <ion-icon name="person"></ion-icon>
+        <span>Profile</span>
+      </div>
+    </button>
+  </div>
+
+</ion-content>
