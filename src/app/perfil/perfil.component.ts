@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -15,8 +15,14 @@ import {
   bookOutline,
   person,
   personOutline,
-  logOutOutline
+  logOutOutline,
+  mailOutline,
+  calendarOutline,
+  notificationsOutline,
+  shieldCheckmarkOutline
 } from 'ionicons/icons';
+
+import { ApiService } from '../services/api.service';
 
 @Component({
   selector: 'app-perfil',
@@ -30,21 +36,62 @@ import {
     IonIcon
   ]
 })
-export class PerfilComponent {
+export class PerfilComponent implements OnInit {
   activeTab = 'profile';
+  currentUser: any = null;
+  contactsCount = 0;
+  groupsCount = 0;
+  notificationsCount = 0;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private apiService: ApiService
+  ) {
     addIcons({
       chatbubblesOutline,
       peopleOutline,
       bookOutline,
       person,
       personOutline,
-      logOutOutline
+      logOutOutline,
+      mailOutline,
+      calendarOutline,
+      notificationsOutline,
+      shieldCheckmarkOutline
     });
   }
 
+  ngOnInit() {
+    this.currentUser = this.apiService.getCurrentUser();
+    this.loadStats();
+  }
+
+  loadStats() {
+    this.apiService.getContacts().subscribe({
+      next: (contacts) => {
+        this.contactsCount = (contacts || []).length;
+      }
+    });
+
+    this.apiService.getRooms().subscribe({
+      next: (rooms) => {
+        this.groupsCount = (rooms || []).filter(r => r.category !== 'direct' && r.category !== 'estudio').length;
+      }
+    });
+
+    this.apiService.getNotificationCount().subscribe({
+      next: (count) => {
+        this.notificationsCount = count;
+      }
+    });
+  }
+
+  goToNotifications() {
+    this.router.navigate(['/notificaciones']);
+  }
+
   logout() {
+    this.apiService.logout();
     this.router.navigate(['/login']);
   }
 

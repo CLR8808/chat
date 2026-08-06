@@ -1,16 +1,83 @@
 <ion-content [fullscreen]="true" class="page-content">
 
+  <!-- Header -->
   <div class="header">
     <h2>Mi Perfil</h2>
-    <button class="logout-btn" (click)="logout()">
+    <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
       <ion-icon name="log-out-outline"></ion-icon>
     </button>
   </div>
 
-  <div class="empty-state">
-    <ion-icon name="person"></ion-icon>
-    <h3>Perfil de Estudiante</h3>
-    <p>Gestiona tu cuenta, correo universitario y preferencias.</p>
+  <div class="profile-wrapper">
+
+    <!-- Profile Header Card -->
+    <div class="profile-card">
+      <div class="avatar-big">
+        <span>{{ (currentUser?.displayName || currentUser?.email || 'U').charAt(0).toUpperCase() }}</span>
+      </div>
+
+      <h3>{{ currentUser?.displayName || currentUser?.email?.split('@')[0] }}</h3>
+      <p class="username-tag">@{{ currentUser?.displayName || currentUser?.email?.split('@')[0] }}</p>
+
+      <!-- Stats Grid -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-num">{{ contactsCount }}</span>
+          <span class="stat-label">Contactos</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">{{ groupsCount }}</span>
+          <span class="stat-label">Grupos</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Details Card -->
+    <div class="details-card">
+      <h4>DATOS DE LA CUENTA</h4>
+
+      <div class="detail-row">
+        <div class="detail-icon">
+          <ion-icon name="mail-outline"></ion-icon>
+        </div>
+        <div class="detail-info">
+          <span class="label">Correo universitario</span>
+          <span class="value">{{ currentUser?.email }}</span>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <div class="detail-icon">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+        <div class="detail-info">
+          <span class="label">Estado de la cuenta</span>
+          <span class="value active-tag">Activa / Verificada</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Card -->
+    <div class="actions-card">
+      <div class="action-row" (click)="goToNotifications()">
+        <div class="action-icon">
+          <ion-icon name="notifications-outline"></ion-icon>
+        </div>
+        <div class="action-info">
+          <span class="title">Notificaciones</span>
+          <span class="sub">Solicitudes de contacto recibidas</span>
+        </div>
+        <span class="notif-badge" *ngIf="notificationsCount > 0">{{ notificationsCount }}</span>
+      </div>
+    </div>
+
+    <!-- Logout Action -->
+    <button class="full-logout-btn" (click)="logout()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      Cerrar Sesión
+    </button>
+
   </div>
 
   <!-- Bottom Navigation Bar / Barra de tareas -->

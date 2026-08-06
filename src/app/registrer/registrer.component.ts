@@ -26,7 +26,10 @@ import {
   shieldCheckmarkOutline,
   arrowForwardOutline,
   logoGoogle,
-  logoWindows
+  logoWindows,
+  personOutline,
+  checkmarkCircleOutline,
+  closeCircleOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -52,6 +55,10 @@ export class RegistrerComponent {
   isLoading = false;
   errorMessage = '';
 
+  // Username availability
+  nameCheckStatus: 'idle' | 'checking' | 'available' | 'taken' = 'idle';
+  private nameCheckTimer: any = null;
+
   form: FormGroup;
 
   constructor(
@@ -69,13 +76,39 @@ export class RegistrerComponent {
       shieldCheckmarkOutline,
       arrowForwardOutline,
       logoGoogle,
-      logoWindows
+      logoWindows,
+      personOutline,
+      checkmarkCircleOutline,
+      closeCircleOutline
     });
 
     this.form = this.fb.group({
+      displayName: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
+    });
+
+    // Verificar disponibilidad del nombre con debounce
+    this.form.get('displayName')?.valueChanges.subscribe(value => {
+      if (this.nameCheckTimer) clearTimeout(this.nameCheckTimer);
+
+      if (!value || value.length < 3) {
+        this.nameCheckStatus = 'idle';
+        return;
+      }
+
+      this.nameCheckStatus = 'checking';
+      this.nameCheckTimer = setTimeout(() => {
+        this.apiService.checkDisplayNameAvailable(value).subscribe({
+          next: (available) => {
+            this.nameCheckStatus = available ? 'available' : 'taken';
+          },
+          error: () => {
+            this.nameCheckStatus = 'idle';
+          }
+        });
+      }, 500);
     });
   }
 
@@ -93,7 +126,12 @@ export class RegistrerComponent {
       return;
     }
 
-    const { email, password, confirmPassword } = this.form.value;
+    if (this.nameCheckStatus === 'taken') {
+      this.errorMessage = 'Nombre de usuario ya existente. Elige otro.';
+      return;
+    }
+
+    const { displayName, email, password, confirmPassword } = this.form.value;
 
     if (password !== confirmPassword) {
       this.errorMessage = 'Las contraseñas no coinciden';
@@ -103,16 +141,21 @@ export class RegistrerComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.apiService.register({ email, password }).subscribe({
+    this.apiService.register({ displayName, email, password }).subscribe({
       next: (res) => {
         this.isLoading = false;
-        console.log('✅ Usuario registrado exitosamente en Firebase:', res);
+        console.log('✅ Usuario registrado:', res);
         this.router.navigate(['/chats']);
       },
       error: (err) => {
         this.isLoading = false;
-        console.error('❌ Error al registrar en Firebase:', err);
-        this.errorMessage = err.error?.message || 'Error al conectar con el servidor';
+        console.error('❌ Error al registrar:', err);
+        if (err.message && err.message.includes('Nombre')) {
+          this.errorMessage = err.message;
+          this.nameCheckStatus = 'taken';
+        } else {
+          this.errorMessage = err.error?.message || err.message || 'Error al conectar con el servidor';
+        }
       }
     });
   }
@@ -120,5 +163,4 @@ export class RegistrerComponent {
   goLogin() {
     this.router.navigate(['/login']);
   }
-
 }

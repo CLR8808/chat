@@ -16,9 +16,16 @@
       </div>
     </div>
 
-    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
-      <ion-icon name="log-out-outline"></ion-icon>
-    </button>
+    <div class="header-actions">
+      <button class="notif-btn" (click)="goToNotifications()" title="Notificaciones">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <span class="badge-count" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+      </button>
+
+      <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </button>
+    </div>
   </div>
 
   <!-- Search Input -->

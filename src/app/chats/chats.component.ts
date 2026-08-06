@@ -26,7 +26,8 @@ import {
   peopleOutline,
   bookOutline,
   personOutline,
-  closeOutline
+  closeOutline,
+  notificationsOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -64,6 +65,7 @@ export class ChatsComponent implements OnInit {
   selectedCategory = 'todas';
   rooms: any[] = [];
   isLoading = false;
+  notificationCount = 0;
 
   constructor(
     private router: Router,
@@ -84,13 +86,27 @@ export class ChatsComponent implements OnInit {
       peopleOutline,
       bookOutline,
       personOutline,
-      closeOutline
+      closeOutline,
+      notificationsOutline
     });
   }
 
   ngOnInit() {
     this.currentUser = this.apiService.getCurrentUser();
     this.loadRooms();
+    this.loadNotificationsCount();
+  }
+
+  loadNotificationsCount() {
+    this.apiService.getNotificationCount().subscribe({
+      next: (count) => {
+        this.notificationCount = count;
+      }
+    });
+  }
+
+  goToNotifications() {
+    this.router.navigate(['/notificaciones']);
   }
 
   loadRooms() {

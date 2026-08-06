@@ -9,8 +9,10 @@ import {
   sendOutline,
   send,
   personOutline,
+  personAddOutline,
   ellipsisVertical,
-  checkmarkDoneOutline
+  checkmarkDoneOutline,
+  checkmarkOutline
 } from 'ionicons/icons';
 
 import { db } from '../../environments/environment';
@@ -50,6 +52,11 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   isGroup = false;
   memberCount = 0;
 
+  // Contact status check
+  isNotContact = false;
+  contactRequestSent = false;
+  otherUserEmail = '';
+
   private unsubscribe: (() => void) | null = null;
   private shouldScrollToBottom = true;
 
@@ -58,7 +65,16 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     private router: Router,
     private apiService: ApiService
   ) {
-    addIcons({ arrowBack, sendOutline, send, personOutline, ellipsisVertical, checkmarkDoneOutline });
+    addIcons({
+      arrowBack,
+      sendOutline,
+      send,
+      personOutline,
+      personAddOutline,
+      ellipsisVertical,
+      checkmarkDoneOutline,
+      checkmarkOutline
+    });
   }
 
   ngOnInit() {
@@ -86,7 +102,6 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   async loadRoomAndMessages() {
-    // 1. Cargar datos de la sala
     const roomRef = doc(db, 'rooms', this.roomId);
     const roomSnap = await getDoc(roomRef);
 
@@ -99,14 +114,23 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.isGroup = this.roomData.category !== 'direct';
     this.memberCount = (this.roomData.members || []).length;
 
-    // Resolver nombre de contacto en chats 1-a-1
-    if (!this.isGroup && this.roomData.participantNames) {
+    if (!this.isGroup) {
       const myEmail = this.currentUser.email;
-      const otherEmail = (this.roomData.members || []).find((m: string) => m !== myEmail);
-      if (otherEmail && this.roomData.participantNames[otherEmail]) {
-        this.contactName = this.roomData.participantNames[otherEmail];
+      this.otherUserEmail = (this.roomData.members || []).find((m: string) => m !== myEmail) || '';
+
+      if (this.roomData.participantNames && this.otherUserEmail && this.roomData.participantNames[this.otherUserEmail]) {
+        this.contactName = this.roomData.participantNames[this.otherUserEmail];
       } else {
         this.contactName = this.roomData.name || 'Contacto';
+      }
+
+      // Verificar si ya es contacto
+      if (this.otherUserEmail) {
+        this.apiService.isContact(this.otherUserEmail).subscribe({
+          next: (isContact) => {
+            this.isNotContact = !isContact;
+          }
+        });
       }
     } else {
       this.contactName = this.roomData.name || 'Grupo';
@@ -115,7 +139,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.contactInitial = this.contactName.charAt(0).toUpperCase();
     this.isLoading = false;
 
-    // 2. Suscribirse en tiempo real a mensajes ordenados por fecha
+    // Suscribirse a mensajes
     const msgsRef = collection(db, 'rooms', this.roomId, 'messages');
     const msgsQuery = query(msgsRef, orderBy('sentAt', 'asc'));
 
@@ -132,6 +156,19 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
         };
       });
       this.shouldScrollToBottom = true;
+    });
+  }
+
+  sendAddContactRequest() {
+    if (!this.otherUserEmail) return;
+
+    this.apiService.sendContactRequest({
+      email: this.otherUserEmail,
+      displayName: this.contactName
+    }).subscribe({
+      next: () => {
+        this.contactRequestSent = true;
+      }
     });
   }
 
@@ -152,7 +189,6 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
     await addDoc(msgsRef, msg);
 
-    // Actualizar último mensaje en la sala
     const roomRef = doc(db, 'rooms', this.roomId);
     await updateDoc(roomRef, {
       lastMessage: text,

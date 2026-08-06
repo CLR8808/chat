@@ -29,6 +29,22 @@
     </button>
   </div>
 
+  <!-- Banner "Agg contacto nuevo" si no está en la lista de contactos -->
+  <div class="add-contact-banner" *ngIf="isNotContact && !isGroup">
+    <div class="banner-text">
+      <ion-icon name="person-add-outline"></ion-icon>
+      <span><strong>{{ contactName }}</strong> no está en tus contactos.</span>
+    </div>
+    <button
+      class="banner-btn"
+      [class.sent]="contactRequestSent"
+      (click)="sendAddContactRequest()"
+      [disabled]="contactRequestSent">
+      <ion-icon [name]="contactRequestSent ? 'checkmark-outline' : 'person-add-outline'"></ion-icon>
+      {{ contactRequestSent ? 'Solicitud enviada' : 'Agg contacto nuevo' }}
+    </button>
+  </div>
+
   <!-- Área de mensajes -->
   <div class="messages-area" *ngIf="!isLoading">
 

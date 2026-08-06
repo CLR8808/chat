@@ -9,19 +9,21 @@ import {
   setDoc,
   getDocs,
   getDoc,
+  deleteDoc,
   query,
-  where
+  where,
+  onSnapshot
 } from 'firebase/firestore';
 
 export interface RoomData {
   id?: string;
   name: string;
   description?: string;
-  category: string; // 'estudio' | 'academica' | 'social' | 'urgente' | 'direct'
+  category: string;
   icon?: string;
   accentColor?: string;
   createdBy: string;
-  members?: string[]; // email or user IDs
+  members?: string[];
   createdAt?: string;
   lastMessage?: string;
   lastMessageTime?: string;
@@ -42,12 +44,15 @@ export class ApiService {
     }
   }
 
-  // Register user in Firestore
-  register(userData: { email: string; password: string; displayName?: string }): Observable<any> {
+  // ==================================================================
+  // REGISTRO Y LOGIN
+  // ==================================================================
+
+  register(userData: { email: string; password: string; displayName: string }): Observable<any> {
     return this.http.post(`${this.apiUrl}/users/register`, userData).pipe(
       tap((user: any) => this.setCurrentUser(user)),
       catchError((httpErr) => {
-        console.warn('⚠️ Conexión HTTP al backend no disponible (status 0). Conectando directamente a Firebase Firestore SDK...', httpErr);
+        console.warn('⚠️ Backend no disponible. Conectando directo a Firebase...', httpErr);
         return from(this.registerDirectFirebase(userData)).pipe(
           tap((user: any) => this.setCurrentUser(user))
         );
@@ -55,13 +60,21 @@ export class ApiService {
     );
   }
 
-  private async registerDirectFirebase(userData: { email: string; password: string; displayName?: string }) {
+  private async registerDirectFirebase(userData: { email: string; password: string; displayName: string }) {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', userData.email));
-    const snapshot = await getDocs(q);
 
-    if (!snapshot.empty) {
+    // Verificar email duplicado
+    const emailQuery = query(usersRef, where('email', '==', userData.email));
+    const emailSnap = await getDocs(emailQuery);
+    if (!emailSnap.empty) {
       throw new Error('El usuario ya existe con ese correo');
+    }
+
+    // Verificar displayName duplicado
+    const nameQuery = query(usersRef, where('displayName', '==', userData.displayName));
+    const nameSnap = await getDocs(nameQuery);
+    if (!nameSnap.empty) {
+      throw new Error('Nombre de usuario ya existente');
     }
 
     const newDocRef = doc(usersRef);
@@ -69,7 +82,7 @@ export class ApiService {
       id: newDocRef.id,
       email: userData.email,
       password: userData.password,
-      displayName: userData.displayName || userData.email.split('@')[0],
+      displayName: userData.displayName,
       photoURL: '',
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString()
@@ -80,12 +93,23 @@ export class ApiService {
     return result;
   }
 
-  // Login user in Firestore
+  // Verificar disponibilidad de displayName
+  checkDisplayNameAvailable(name: string): Observable<boolean> {
+    return from(this.checkDisplayNameFirebase(name));
+  }
+
+  private async checkDisplayNameFirebase(name: string): Promise<boolean> {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('displayName', '==', name));
+    const snapshot = await getDocs(q);
+    return snapshot.empty; // true = disponible
+  }
+
   login(credentials: { email: string; password: string }): Observable<any> {
     return this.http.post(`${this.apiUrl}/users/login`, credentials).pipe(
       tap((user: any) => this.setCurrentUser(user)),
       catchError((httpErr) => {
-        console.warn('⚠️ Conexión HTTP al backend no disponible (status 0). Autenticando directamente con Firebase Firestore SDK...', httpErr);
+        console.warn('⚠️ Backend no disponible. Autenticando con Firebase...', httpErr);
         return from(this.loginDirectFirebase(credentials)).pipe(
           tap((user: any) => this.setCurrentUser(user))
         );
@@ -128,9 +152,10 @@ export class ApiService {
     localStorage.removeItem('currentUser');
   }
 
-  // ------------------------------------------------------------------
-  // GESTIÓN DE CONTACTOS & CHATS DIRECTOS 1-ON-1
-  // ------------------------------------------------------------------
+  // ==================================================================
+  // CONTACTOS
+  // ==================================================================
+
   getAllRegisteredUsers(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/users`).pipe(
       catchError(() => from(this.getAllRegisteredUsersFirebase()))
@@ -149,7 +174,6 @@ export class ApiService {
   getContacts(): Observable<any[]> {
     const curr = this.getCurrentUser();
     if (!curr) return of([]);
-
     return from(this.getContactsFirebase(curr.id || curr.email));
   }
 
@@ -159,80 +183,224 @@ export class ApiService {
     return snapshot.docs.map(doc => doc.data());
   }
 
-  // AGREGAR CONTACTO + CREAR SALA DE CHAT DIRECTO 1-A-1
-  addContact(contactUser: any): Observable<any> {
+  isContact(contactEmail: string): Observable<boolean> {
     const curr = this.getCurrentUser();
-    if (!curr) return of(null);
-
-    return from(this.addContactAndCreateDirectChat(curr, contactUser));
+    if (!curr) return of(false);
+    return from(this.isContactFirebase(curr.id || curr.email, contactEmail));
   }
 
-  private async addContactAndCreateDirectChat(currUser: any, contactUser: any) {
-    const currEmail = currUser.email;
-    const contactEmail = contactUser.email;
-    const currKey = currUser.id || currEmail;
-    const contactKey = contactUser.id || contactEmail;
+  private async isContactFirebase(userKey: string, contactEmail: string): Promise<boolean> {
+    const contacts = await this.getContactsFirebase(userKey);
+    return contacts.some(c => c.email === contactEmail);
+  }
 
-    // 1. Guardar en los contactos del usuario actual
-    const contactsRef = collection(db, 'users', currKey, 'contacts');
-    const contactDocRef = doc(contactsRef, contactKey);
-    const contactData = {
-      id: contactKey,
-      email: contactEmail,
-      displayName: contactUser.displayName || contactEmail.split('@')[0],
-      photoURL: contactUser.photoURL || '',
-      addedAt: new Date().toISOString()
+  // ENVIAR SOLICITUD DE CONTACTO (no agrega directo, crea notificación)
+  sendContactRequest(targetUser: any): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    return from(this.sendContactRequestFirebase(curr, targetUser));
+  }
+
+  private async sendContactRequestFirebase(currUser: any, targetUser: any) {
+    const targetKey = targetUser.id || targetUser.email;
+    const currKey = currUser.id || currUser.email;
+
+    // Verificar que no haya solicitud previa
+    const notifRef = collection(db, 'users', targetKey, 'notifications');
+    const existingQuery = query(notifRef,
+      where('type', '==', 'contact_request'),
+      where('fromEmail', '==', currUser.email)
+    );
+    const existingSnap = await getDocs(existingQuery);
+    if (!existingSnap.empty) {
+      return { status: 'already_sent' };
+    }
+
+    // Verificar que no sean ya contactos
+    const isAlready = await this.isContactFirebase(currKey, targetUser.email);
+    if (isAlready) {
+      return { status: 'already_contact' };
+    }
+
+    // Crear notificación
+    const notifDoc = doc(notifRef);
+    const notification = {
+      id: notifDoc.id,
+      type: 'contact_request',
+      fromId: currKey,
+      fromEmail: currUser.email,
+      fromDisplayName: currUser.displayName || currUser.email.split('@')[0],
+      toId: targetKey,
+      toEmail: targetUser.email,
+      status: 'pending',
+      createdAt: new Date().toISOString()
     };
-    await setDoc(contactDocRef, contactData);
+    await setDoc(notifDoc, notification);
 
-    // 2. Guardar también en los contactos del usuario receptor (para que ambos se vean)
-    const reciprocalContactsRef = collection(db, 'users', contactKey, 'contacts');
-    const reciprocalDocRef = doc(reciprocalContactsRef, currKey);
-    const reciprocalData = {
-      id: currKey,
-      email: currEmail,
-      displayName: currUser.displayName || currEmail.split('@')[0],
-      photoURL: currUser.photoURL || '',
-      addedAt: new Date().toISOString()
-    };
-    await setDoc(reciprocalDocRef, reciprocalData);
+    // Crear sala directa anticipada para poder enviar mensajes sin agregar
+    await this.ensureDirectRoom(currUser, targetUser);
 
-    // 3. Crear o asegurar sala de chat directo 1-a-1
-    // Id determinista único para ambos usuarios
-    const emailsSorted = [currEmail, contactEmail].sort();
+    return { status: 'sent', notification };
+  }
+
+  // Asegurar que exista sala directa entre dos usuarios (para chat sin agregar)
+  private async ensureDirectRoom(userA: any, userB: any) {
+    const emailsSorted = [userA.email, userB.email].sort();
     const roomId = `dm_${emailsSorted[0]}_${emailsSorted[1]}`;
     const roomRef = doc(db, 'rooms', roomId);
 
     const roomSnap = await getDoc(roomRef);
     if (!roomSnap.exists()) {
+      const nameA = userA.displayName || userA.email.split('@')[0];
+      const nameB = userB.displayName || userB.email.split('@')[0];
       const roomPayload = {
         id: roomId,
-        name: contactData.displayName,
-        description: `Chat privado entre ${currUser.displayName || currEmail} y ${contactData.displayName}`,
+        name: nameB,
+        description: `Chat privado entre ${nameA} y ${nameB}`,
         category: 'direct',
         icon: 'person-outline',
         accentColor: 'blue',
-        createdBy: currEmail,
-        members: [currEmail, contactEmail],
+        createdBy: userA.email,
+        members: [userA.email, userB.email],
         createdAt: new Date().toISOString(),
-        lastMessage: 'Chat iniciado',
+        lastMessage: '',
         lastMessageTime: 'Ahora',
         unreadCount: 0,
-        // Guardamos los nombres de participantes para resolver el nombre mostrado a cada usuario
         participantNames: {
-          [currEmail]: currUser.displayName || currEmail.split('@')[0],
-          [contactEmail]: contactData.displayName
+          [userA.email]: nameA,
+          [userB.email]: nameB
         }
       };
       await setDoc(roomRef, roomPayload);
     }
+    return roomId;
+  }
+
+  // Enviar mensaje directo a un usuario (crea sala si no existe)
+  sendDirectMessage(targetUser: any): Observable<string> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of('');
+    return from(this.ensureDirectRoom(curr, targetUser));
+  }
+
+  // ==================================================================
+  // NOTIFICACIONES
+  // ==================================================================
+
+  getNotifications(): Observable<any[]> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of([]);
+    const userKey = curr.id || curr.email;
+    return from(this.getNotificationsFirebase(userKey));
+  }
+
+  private async getNotificationsFirebase(userKey: string): Promise<any[]> {
+    const notifRef = collection(db, 'users', userKey, 'notifications');
+    const snapshot = await getDocs(notifRef);
+    return snapshot.docs.map(d => d.data());
+  }
+
+  getNotificationCount(): Observable<number> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(0);
+    const userKey = curr.id || curr.email;
+    return from(this.getNotificationCountFirebase(userKey));
+  }
+
+  private async getNotificationCountFirebase(userKey: string): Promise<number> {
+    const notifRef = collection(db, 'users', userKey, 'notifications');
+    const q = query(notifRef, where('status', '==', 'pending'));
+    const snapshot = await getDocs(q);
+    return snapshot.size;
+  }
+
+  acceptContactRequest(notification: any): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    return from(this.acceptContactFirebase(curr, notification));
+  }
+
+  private async acceptContactFirebase(currUser: any, notification: any) {
+    const currKey = currUser.id || currUser.email;
+    const fromKey = notification.fromId;
+    const fromEmail = notification.fromEmail;
+    const fromName = notification.fromDisplayName;
+
+    // 1. Agregar contacto bidireccional
+    const myContactsRef = doc(db, 'users', currKey, 'contacts', fromKey);
+    await setDoc(myContactsRef, {
+      id: fromKey,
+      email: fromEmail,
+      displayName: fromName,
+      photoURL: '',
+      addedAt: new Date().toISOString()
+    });
+
+    const theirContactsRef = doc(db, 'users', fromKey, 'contacts', currKey);
+    await setDoc(theirContactsRef, {
+      id: currKey,
+      email: currUser.email,
+      displayName: currUser.displayName || currUser.email.split('@')[0],
+      photoURL: '',
+      addedAt: new Date().toISOString()
+    });
+
+    // 2. Asegurar sala directa
+    await this.ensureDirectRoom(currUser, {
+      id: fromKey,
+      email: fromEmail,
+      displayName: fromName
+    });
+
+    // 3. Eliminar notificación
+    const notifDocRef = doc(db, 'users', currKey, 'notifications', notification.id);
+    await deleteDoc(notifDocRef);
+
+    return { status: 'accepted' };
+  }
+
+  rejectContactRequest(notification: any): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    const currKey = curr.id || curr.email;
+    return from(this.rejectContactFirebase(currKey, notification));
+  }
+
+  private async rejectContactFirebase(userKey: string, notification: any) {
+    const notifDocRef = doc(db, 'users', userKey, 'notifications', notification.id);
+    await deleteDoc(notifDocRef);
+    return { status: 'rejected' };
+  }
+
+  // Agregar contacto directamente (para uso interno cuando ambos aceptan)
+  addContactDirect(contactUser: any): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    return from(this.addContactDirectFirebase(curr, contactUser));
+  }
+
+  private async addContactDirectFirebase(currUser: any, contactUser: any) {
+    const currKey = currUser.id || currUser.email;
+    const contactKey = contactUser.id || contactUser.email;
+
+    const contactsRef = doc(db, 'users', currKey, 'contacts', contactKey);
+    const contactData = {
+      id: contactKey,
+      email: contactUser.email,
+      displayName: contactUser.displayName || contactUser.email.split('@')[0],
+      photoURL: contactUser.photoURL || '',
+      addedAt: new Date().toISOString()
+    };
+    await setDoc(contactsRef, contactData);
+
+    await this.ensureDirectRoom(currUser, contactUser);
 
     return contactData;
   }
 
-  // ------------------------------------------------------------------
-  // GESTIÓN DE SALAS Y GRUPOS CON FILTRADO ESTRICTO DE MIEMBROS
-  // ------------------------------------------------------------------
+  // ==================================================================
+  // SALAS Y GRUPOS
+  // ==================================================================
 
   getIconForCategory(category: string, name: string = ''): { icon: string; accentColor: string } {
     const n = name.toLowerCase();
@@ -251,11 +419,9 @@ export class ApiService {
     return { icon: 'chatbubbles-outline', accentColor: 'blue' };
   }
 
-  // Obtener salas filtradas ESTRICTAMENTE por miembros (solo salas donde pertenezca el usuario)
   getRooms(category?: string): Observable<any[]> {
     const curr = this.getCurrentUser();
     if (!curr) return of([]);
-
     return from(this.getRoomsForUserFirebase(curr.email, category));
   }
 
@@ -268,26 +434,19 @@ export class ApiService {
       .filter(room => {
         const members: string[] = room['members'] || [];
         const createdBy: string = room['createdBy'] || '';
-
-        // SOLO si el usuario actual es miembro o creador de la sala
         const isMember = members.includes(userEmail) || createdBy === userEmail;
         if (!isMember) return false;
 
-        // Filtrado opcional por categoría
         if (category && category !== 'todas') {
           return room['category'] === category;
         }
         return true;
       })
       .map(room => {
-        // Para salas de chat directo 1-a-1, personalizar el nombre del contacto
         if (room['category'] === 'direct' && room['participantNames']) {
           const otherEmail = (room['members'] || []).find((m: string) => m !== userEmail);
           if (otherEmail && room['participantNames'][otherEmail]) {
-            return {
-              ...room,
-              name: room['participantNames'][otherEmail]
-            };
+            return { ...room, name: room['participantNames'][otherEmail] };
           }
         }
         return room;
@@ -314,8 +473,6 @@ export class ApiService {
     const newDocRef = doc(roomsRef);
     const currUser = this.getCurrentUser();
     const creatorEmail = currUser?.email || roomData.createdBy;
-
-    // Asegurar que el creador y los miembros seleccionados pertenezcan al grupo
     const members = Array.from(new Set([creatorEmail, ...(roomData.members || [])]));
 
     const room = {

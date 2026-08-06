@@ -7,6 +7,11 @@ export const routes: Routes = [
       import('./conversation/conversation.component').then((m) => m.ConversationComponent),
   },
   {
+    path: 'notificaciones',
+    loadComponent: () =>
+      import('./notificaciones/notificaciones.component').then((m) => m.NotificacionesComponent),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./login/login.component').then((m) => m.LoginComponent),

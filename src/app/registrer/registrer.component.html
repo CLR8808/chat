@@ -26,6 +26,29 @@
 
       <form [formGroup]="form" (ngSubmit)="register()">
 
+        <!-- DisplayName Field (Instagram-style unique username) -->
+        <div class="field">
+          <label>Nombre de usuario</label>
+          <div class="input-box" [class.is-taken]="nameCheckStatus === 'taken'" [class.is-available]="nameCheckStatus === 'available'">
+            <ion-icon name="person-outline" class="left-icon"></ion-icon>
+            <ion-input
+              type="text"
+              placeholder="@tu_nombre_unico"
+              formControlName="displayName">
+            </ion-input>
+
+            <!-- Status Indicator -->
+            <span *ngIf="nameCheckStatus === 'checking'" class="status-tag checking">Buscando...</span>
+            <span *ngIf="nameCheckStatus === 'available'" class="status-tag available">
+              <ion-icon name="checkmark-circle-outline"></ion-icon> Disponible
+            </span>
+            <span *ngIf="nameCheckStatus === 'taken'" class="status-tag taken">
+              <ion-icon name="close-circle-outline"></ion-icon> Ya existente
+            </span>
+          </div>
+          <p class="field-help" *ngIf="nameCheckStatus === 'taken'">Este nombre ya está en uso por otro usuario.</p>
+        </div>
+
         <!-- Email Field -->
         <div class="field">
           <label>Email</label>
@@ -72,7 +95,7 @@
         </div>
 
         <!-- Submit Button -->
-        <ion-button expand="block" class="register-button" type="submit" [disabled]="isLoading">
+        <ion-button expand="block" class="register-button" type="submit" [disabled]="isLoading || nameCheckStatus === 'taken'">
           <span *ngIf="!isLoading">Registrarme</span>
           <span *ngIf="isLoading">Guardando en Firebase...</span>
           <ion-icon slot="end" name="arrow-forward-outline" *ngIf="!isLoading"></ion-icon>

@@ -22,8 +22,7 @@ import {
   chatbubbles,
   peopleOutline,
   bookOutline,
-  mailOutline,
-  chatboxEllipsesOutline
+  paperPlaneOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -49,6 +48,7 @@ export class AggcontactoComponent implements OnInit {
   allRegisteredUsers: any[] = [];
   userContacts: any[] = [];
   isLoading = false;
+  requestStatusMap: { [email: string]: string } = {};
 
   constructor(
     private router: Router,
@@ -65,8 +65,7 @@ export class AggcontactoComponent implements OnInit {
       chatbubbles,
       peopleOutline,
       bookOutline,
-      mailOutline,
-      chatboxEllipsesOutline
+      paperPlaneOutline
     });
   }
 
@@ -78,7 +77,6 @@ export class AggcontactoComponent implements OnInit {
   loadData() {
     this.isLoading = true;
 
-    // Load all registered users
     this.apiService.getAllRegisteredUsers().subscribe({
       next: (users) => {
         const currEmail = this.currentUser?.email;
@@ -90,7 +88,6 @@ export class AggcontactoComponent implements OnInit {
       }
     });
 
-    // Load current contacts
     this.apiService.getContacts().subscribe({
       next: (contacts) => {
         this.userContacts = contacts || [];
@@ -104,8 +101,7 @@ export class AggcontactoComponent implements OnInit {
     }
     const q = this.searchQuery.toLowerCase();
     return this.allRegisteredUsers.filter(u =>
-      (u.email && u.email.toLowerCase().includes(q)) ||
-      (u.displayName && u.displayName.toLowerCase().includes(q))
+      u.displayName && u.displayName.toLowerCase().includes(q)
     );
   }
 
@@ -113,25 +109,45 @@ export class AggcontactoComponent implements OnInit {
     return this.userContacts.some(c => c.email === user.email);
   }
 
-  addContact(user: any) {
-    if (this.isContactAdded(user)) {
-      this.router.navigate(['/chats']);
-      return;
-    }
+  sendContactRequest(user: any) {
+    if (this.isContactAdded(user)) return;
 
-    this.apiService.addContact(user).subscribe({
+    this.requestStatusMap[user.email] = 'sending';
+    this.apiService.sendContactRequest(user).subscribe({
       next: (res) => {
-        if (res) {
-          this.userContacts.push(res);
+        if (res && res.status === 'sent') {
+          this.requestStatusMap[user.email] = 'sent';
+        } else if (res && res.status === 'already_contact') {
+          this.requestStatusMap[user.email] = 'added';
+        } else {
+          this.requestStatusMap[user.email] = 'sent';
         }
-        // Redirigir a chats para que pueda chatear inmediatamente con el nuevo contacto
-        this.router.navigate(['/chats']);
+      },
+      error: () => {
+        this.requestStatusMap[user.email] = 'error';
+      }
+    });
+  }
+
+  // Permite enviar mensaje directo sin necesidad de agregar al contacto
+  sendMessageWithoutAdding(user: any) {
+    this.apiService.sendDirectMessage(user).subscribe({
+      next: (roomId) => {
+        if (roomId) {
+          this.router.navigate(['/conversation', roomId]);
+        }
       }
     });
   }
 
   openContactChat(contact: any) {
-    this.router.navigate(['/chats']);
+    this.apiService.sendDirectMessage(contact).subscribe({
+      next: (roomId) => {
+        if (roomId) {
+          this.router.navigate(['/conversation', roomId]);
+        }
+      }
+    });
   }
 
   goBack() {
@@ -144,5 +160,4 @@ export class AggcontactoComponent implements OnInit {
     else if (tab === 'study') this.router.navigate(['/estudio']);
     else if (tab === 'profile') this.router.navigate(['/perfil']);
   }
-
 }
