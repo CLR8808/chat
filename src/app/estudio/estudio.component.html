@@ -45,6 +45,7 @@
       <div
         *ngFor="let room of studyRooms"
         class="study-room-card"
+        [class.has-new-message]="getUnreadCount(room) > 0"
         (click)="openRoom(room)">
 
         <div class="room-icon-box">

@@ -66,6 +66,7 @@
     <div
       *ngFor="let room of filteredRooms"
       class="room-card accent-{{ room.accentColor || 'blue' }}"
+      [class.has-new-message]="getUnreadCount(room) > 0"
       (click)="openRoom(room)">
 
       <div class="icon-box {{ room.accentColor || 'blue' }}">

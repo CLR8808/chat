@@ -33,6 +33,7 @@
       <div
         *ngFor="let room of groupRooms"
         class="group-card accent-{{ room.accentColor || 'blue' }}"
+        [class.has-new-message]="getUnreadCount(room) > 0"
         (click)="openRoom(room)">
 
         <div class="group-icon-box {{ room.accentColor || 'blue' }}">

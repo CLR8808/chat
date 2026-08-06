@@ -13,8 +13,10 @@ import {
   updateDoc,
   query,
   where,
-  onSnapshot
+  onSnapshot,
+  arrayUnion
 } from 'firebase/firestore';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export interface RoomData {
   id?: string;
@@ -522,8 +524,12 @@ export class ApiService {
   }
 
   private async deleteRoomFirebase(roomId: string) {
+    const curr = this.getCurrentUser();
+    if (!curr) return { success: false };
     const roomRef = doc(db, 'rooms', roomId);
-    await deleteDoc(roomRef);
+    await updateDoc(roomRef, {
+      hiddenFor: arrayUnion(curr.email)
+    });
     return { success: true, id: roomId };
   }
 
@@ -613,6 +619,51 @@ export class ApiService {
   }
 
   // ==================================================================
+  // NOTIFICACIONES NATIVAS (CAPACITOR)
+  // ==================================================================
+
+  private previousUnreadCounts: Record<string, number> = {};
+  private isListeningForNotifications = false;
+
+  listenForNewMessagesAndNotify() {
+    if (this.isListeningForNotifications) return;
+    this.isListeningForNotifications = true;
+
+    // Pedir permisos de antemano si es posible
+    LocalNotifications.requestPermissions().catch(() => {});
+
+    this.getRoomsRealtime().subscribe(rooms => {
+      rooms.forEach(room => {
+        const myUnread = this.getMyUnreadCount(room);
+        const prevUnread = this.previousUnreadCounts[room.id] || 0;
+
+        // Si el conteo sube, significa que llegó un mensaje nuevo y no lo hemos leído aún
+        if (myUnread > prevUnread) {
+          this.showLocalNotification(room.name || 'Nuevo mensaje', room.lastMessage || 'Tienes un nuevo mensaje');
+        }
+        this.previousUnreadCounts[room.id] = myUnread;
+      });
+    });
+  }
+
+  private async showLocalNotification(title: string, body: string) {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: title,
+            body: body,
+            id: new Date().getTime(),
+            schedule: { at: new Date(Date.now() + 100) }
+          }
+        ]
+      });
+    } catch (e) {
+      console.warn('LocalNotifications no disponible o permiso denegado', e);
+    }
+  }
+
+  // ==================================================================
   // REALTIME LISTENERS
   // ==================================================================
 
@@ -631,6 +682,9 @@ export class ApiService {
         const userRooms = snapshot.docs
           .map(d => d.data())
           .filter(room => {
+            const hiddenFor: string[] = room['hiddenFor'] || [];
+            if (hiddenFor.includes(userEmail)) return false;
+
             const members: string[] = room['members'] || [];
             const createdBy: string = room['createdBy'] || '';
             const isMember = members.includes(userEmail) || createdBy === userEmail;
@@ -733,12 +787,15 @@ export class ApiService {
     const members: string[] = data['members'] || [];
     const unreadCounts: Record<string, number> = data['unreadCounts'] || {};
 
-    const updates: Record<string, number> = {};
+    const updates: Record<string, any> = {};
     for (const member of members) {
       if (member === curr.email) continue;
       const safeKey = member.replace(/[@.]/g, '_');
       updates[`unreadCounts.${safeKey}`] = (unreadCounts[safeKey] || 0) + 1;
     }
+
+    // Al enviar un mensaje, si alguien había borrado el chat (estaba oculto), lo volvemos a hacer visible
+    updates['hiddenFor'] = [];
 
     if (Object.keys(updates).length > 0) {
       await updateDoc(roomRef, updates);

@@ -179,6 +179,12 @@
     transform: scale(0.98);
   }
 
+  &.has-new-message {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    border: 1px solid rgba(59, 130, 246, 0.6);
+    animation: cardBlueGlow 2s infinite;
+  }
+
   .room-icon-box {
     width: 48px;
     height: 48px;
@@ -322,4 +328,9 @@
 @keyframes unreadPulse {
   0%, 100% { box-shadow: 0 0 6px rgba(59, 130, 246, 0.5); }
   50% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.8); }
+}
+
+@keyframes cardBlueGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.7); border-color: rgba(59, 130, 246, 0.8); }
 }
