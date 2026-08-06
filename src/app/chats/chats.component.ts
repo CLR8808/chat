@@ -27,7 +27,8 @@ import {
   bookOutline,
   personOutline,
   closeOutline,
-  notificationsOutline
+  notificationsOutline,
+  trashOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -87,8 +88,20 @@ export class ChatsComponent implements OnInit {
       bookOutline,
       personOutline,
       closeOutline,
-      notificationsOutline
+      notificationsOutline,
+      trashOutline
     });
+  }
+
+  deleteRoom(room: any, event: Event) {
+    event.stopPropagation();
+    if (confirm(`¿Eliminar la conversación "${room.name}"?`)) {
+      this.apiService.deleteRoom(room.id).subscribe({
+        next: () => {
+          this.rooms = this.rooms.filter(r => r.id !== room.id);
+        }
+      });
+    }
   }
 
   ngOnInit() {

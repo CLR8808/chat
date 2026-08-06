@@ -17,7 +17,8 @@ import {
   personOutline,
   logOutOutline,
   add,
-  schoolOutline
+  schoolOutline,
+  trashOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -51,7 +52,8 @@ export class EstudioComponent implements OnInit {
       personOutline,
       logOutOutline,
       add,
-      schoolOutline
+      schoolOutline,
+      trashOutline
     });
   }
 
@@ -79,7 +81,20 @@ export class EstudioComponent implements OnInit {
   }
 
   openRoom(room: any) {
-    console.log('Abriendo estudio room:', room.name);
+    if (room.id) {
+      this.router.navigate(['/conversation', room.id]);
+    }
+  }
+
+  deleteRoom(room: any, event: Event) {
+    event.stopPropagation();
+    if (confirm(`¿Eliminar la sala de estudio "${room.name}"?`)) {
+      this.apiService.deleteRoom(room.id).subscribe({
+        next: () => {
+          this.studyRooms = this.studyRooms.filter(r => r.id !== room.id);
+        }
+      });
+    }
   }
 
   createStudyRoom() {

@@ -25,7 +25,8 @@ import {
   megaphoneOutline,
   rocketOutline,
   checkmarkOutline,
-  searchOutline
+  searchOutline,
+  trashOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -72,8 +73,20 @@ export class GruposComponent implements OnInit {
       megaphoneOutline,
       rocketOutline,
       checkmarkOutline,
-      searchOutline
+      searchOutline,
+      trashOutline
     });
+  }
+
+  deleteGroup(room: any, event: Event) {
+    event.stopPropagation();
+    if (confirm(`¿Eliminar el grupo "${room.name}"?`)) {
+      this.apiService.deleteRoom(room.id).subscribe({
+        next: () => {
+          this.groupRooms = this.groupRooms.filter(r => r.id !== room.id);
+        }
+      });
+    }
   }
 
   ngOnInit() {

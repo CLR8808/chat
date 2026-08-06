@@ -63,13 +63,16 @@
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      overflow: hidden;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
 
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+      span {
+        font-size: 18px;
+        font-weight: 800;
+        color: #ffffff;
       }
     }
 
@@ -339,10 +342,32 @@
       text-overflow: ellipsis;
     }
 
-    .time-stamp {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--primary);
+    .time-delete-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .time-stamp {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .delete-chat-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #ef4444;
+        }
+      }
     }
   }
 

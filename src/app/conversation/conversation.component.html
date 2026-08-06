@@ -73,13 +73,21 @@
           <span>{{ (msg.senderName || msg.senderEmail || '?').charAt(0).toUpperCase() }}</span>
         </div>
 
-        <div class="bubble" [class.own-bubble]="msg.isOwn" [class.other-bubble]="!msg.isOwn">
+        <div class="bubble" [class.own-bubble]="msg.isOwn" [class.other-bubble]="!msg.isOwn" (click)="toggleMessageOptions(msg, $event)">
           <!-- Nombre del remitente en grupos (solo mensajes ajenos) -->
           <span class="sender-name" *ngIf="!msg.isOwn && isGroup">{{ msg.senderName || msg.senderEmail }}</span>
           <p class="msg-text">{{ msg.text }}</p>
           <div class="msg-meta">
             <span class="msg-time">{{ formatTime(msg.sentAtDate) }}</span>
             <ion-icon name="checkmark-done-outline" class="read-icon" *ngIf="msg.isOwn"></ion-icon>
+          </div>
+
+          <!-- Opciones del mensaje propio (Eliminar) -->
+          <div class="msg-options-popover" *ngIf="activeMessageOptionsId === msg.id && msg.isOwn">
+            <button class="delete-msg-btn" (click)="deleteMessage(msg.id, $event)">
+              <ion-icon name="trash-outline"></ion-icon>
+              Eliminar
+            </button>
           </div>
         </div>
 

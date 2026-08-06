@@ -1,11 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import {
   IonContent,
   IonButton,
-  IonIcon
+  IonIcon,
+  IonModal,
+  IonInput
 } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
@@ -19,7 +22,11 @@ import {
   mailOutline,
   calendarOutline,
   notificationsOutline,
-  shieldCheckmarkOutline
+  shieldCheckmarkOutline,
+  createOutline,
+  closeOutline,
+  trashOutline,
+  checkmarkOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -31,17 +38,28 @@ import { ApiService } from '../services/api.service';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     IonContent,
     IonButton,
-    IonIcon
+    IonIcon,
+    IonModal,
+    IonInput
   ]
 })
 export class PerfilComponent implements OnInit {
   activeTab = 'profile';
   currentUser: any = null;
+  contactsList: any[] = [];
   contactsCount = 0;
   groupsCount = 0;
   notificationsCount = 0;
+
+  // Modal Editar Perfil
+  isEditModalOpen = false;
+  newDisplayName = '';
+  newBio = '';
+  editError = '';
+  isSaving = false;
 
   constructor(
     private router: Router,
@@ -57,19 +75,24 @@ export class PerfilComponent implements OnInit {
       mailOutline,
       calendarOutline,
       notificationsOutline,
-      shieldCheckmarkOutline
+      shieldCheckmarkOutline,
+      createOutline,
+      closeOutline,
+      trashOutline,
+      checkmarkOutline
     });
   }
 
   ngOnInit() {
     this.currentUser = this.apiService.getCurrentUser();
-    this.loadStats();
+    this.loadData();
   }
 
-  loadStats() {
+  loadData() {
     this.apiService.getContacts().subscribe({
       next: (contacts) => {
-        this.contactsCount = (contacts || []).length;
+        this.contactsList = contacts || [];
+        this.contactsCount = this.contactsList.length;
       }
     });
 
@@ -84,6 +107,54 @@ export class PerfilComponent implements OnInit {
         this.notificationsCount = count;
       }
     });
+  }
+
+  openEditModal() {
+    this.newDisplayName = this.currentUser?.displayName || '';
+    this.newBio = this.currentUser?.bio || '';
+    this.editError = '';
+    this.isEditModalOpen = true;
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen = false;
+  }
+
+  saveProfile() {
+    if (!this.newDisplayName.trim() || this.newDisplayName.trim().length < 3) {
+      this.editError = 'El nombre debe tener al menos 3 caracteres';
+      return;
+    }
+
+    this.isSaving = true;
+    this.editError = '';
+
+    this.apiService.updateProfile({
+      displayName: this.newDisplayName.trim(),
+      bio: this.newBio.trim()
+    }).subscribe({
+      next: (updated) => {
+        this.isSaving = false;
+        this.currentUser = updated;
+        this.isEditModalOpen = false;
+      },
+      error: (err) => {
+        this.isSaving = false;
+        this.editError = err.message || 'Error al actualizar perfil';
+      }
+    });
+  }
+
+  deleteContact(contact: any) {
+    if (confirm(`¿Eliminar a ${contact.displayName || contact.email} de tus contactos?`)) {
+      const contactKey = contact.id || contact.email;
+      this.apiService.deleteContact(contactKey).subscribe({
+        next: () => {
+          this.contactsList = this.contactsList.filter(c => (c.id || c.email) !== contactKey);
+          this.contactsCount = this.contactsList.length;
+        }
+      });
+    }
   }
 
   goToNotifications() {

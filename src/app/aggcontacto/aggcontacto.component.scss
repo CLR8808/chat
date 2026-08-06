@@ -161,6 +161,7 @@
   min-width: 60px;
 
   .mini-avatar {
+    position: relative;
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -174,6 +175,23 @@
       font-size: 18px;
       font-weight: 800;
       color: #ffffff;
+    }
+
+    .mini-delete-btn {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #ffffff;
+      border: 1.5px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
     }
   }
 

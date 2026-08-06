@@ -3,9 +3,14 @@
   <!-- Header -->
   <div class="header">
     <h2>Mi Perfil</h2>
-    <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
-      <ion-icon name="log-out-outline"></ion-icon>
-    </button>
+    <div class="header-right">
+      <button class="edit-btn" (click)="openEditModal()" title="Editar perfil">
+        <ion-icon name="create-outline"></ion-icon>
+      </button>
+      <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </button>
+    </div>
   </div>
 
   <div class="profile-wrapper">
@@ -18,6 +23,7 @@
 
       <h3>{{ currentUser?.displayName || currentUser?.email?.split('@')[0] }}</h3>
       <p class="username-tag">@{{ currentUser?.displayName || currentUser?.email?.split('@')[0] }}</p>
+      <p class="user-bio" *ngIf="currentUser?.bio">{{ currentUser.bio }}</p>
 
       <!-- Stats Grid -->
       <div class="stats-row">
@@ -58,6 +64,26 @@
       </div>
     </div>
 
+    <!-- Contacts Management List Card -->
+    <div class="details-card" *ngIf="contactsList.length > 0">
+      <h4>MIS CONTACTOS ({{ contactsList.length }})</h4>
+
+      <div class="contacts-manage-list">
+        <div *ngFor="let c of contactsList" class="contact-manage-item">
+          <div class="c-avatar">
+            <span>{{ (c.displayName || c.email).charAt(0).toUpperCase() }}</span>
+          </div>
+          <div class="c-info">
+            <h5>{{ c.displayName || c.email.split('@')[0] }}</h5>
+            <p>@{{ c.displayName || c.email.split('@')[0] }}</p>
+          </div>
+          <button class="delete-contact-btn" (click)="deleteContact(c)" title="Eliminar contacto">
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Actions Card -->
     <div class="actions-card">
       <div class="action-row" (click)="goToNotifications()">
@@ -79,6 +105,48 @@
     </button>
 
   </div>
+
+  <!-- Modal Editar Perfil -->
+  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
+    <ng-template>
+      <div class="modal-header">
+        <div class="modal-title">
+          <ion-icon name="create-outline"></ion-icon>
+          <h3>Editar Perfil</h3>
+        </div>
+        <button class="modal-close-btn" (click)="closeEditModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="editError" class="error-box">
+          {{ editError }}
+        </div>
+
+        <div class="field">
+          <label>NOMBRE DE USUARIO</label>
+          <div class="input-box">
+            <ion-input [(ngModel)]="newDisplayName" placeholder="@tu_nombre"></ion-input>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>ESTADO / BIO</label>
+          <div class="input-box">
+            <ion-input [(ngModel)]="newBio" placeholder="Ej: Estudiando Ing. de Software 🚀"></ion-input>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <ion-button expand="block" class="save-btn" (click)="saveProfile()" [disabled]="isSaving">
+            <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+            {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
   <!-- Bottom Navigation Bar / Barra de tareas -->
   <div class="bottom-nav">

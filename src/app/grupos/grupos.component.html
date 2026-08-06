@@ -42,7 +42,12 @@
         <div class="group-info">
           <div class="group-header-row">
             <h4>{{ room.name }}</h4>
-            <span class="category-badge">{{ room.category || 'General' }}</span>
+            <div class="group-header-right">
+              <span class="category-badge">{{ room.category || 'General' }}</span>
+              <button class="delete-group-btn" (click)="deleteGroup(room, $event)" title="Eliminar grupo">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
           </div>
 
           <p class="group-desc">{{ room.description || 'Sin descripción' }}</p>

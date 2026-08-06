@@ -37,6 +37,9 @@
       <div *ngFor="let c of userContacts" class="contact-mini" (click)="openContactChat(c)">
         <div class="mini-avatar">
           <span>{{ (c.displayName || c.email).charAt(0).toUpperCase() }}</span>
+          <button class="mini-delete-btn" (click)="deleteContact(c, $event)" title="Eliminar contacto">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
         </div>
         <span class="mini-name">{{ c.displayName || c.email.split('@')[0] }}</span>
       </div>

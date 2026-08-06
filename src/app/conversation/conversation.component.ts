@@ -12,7 +12,8 @@ import {
   personAddOutline,
   ellipsisVertical,
   checkmarkDoneOutline,
-  checkmarkOutline
+  checkmarkOutline,
+  trashOutline
 } from 'ionicons/icons';
 
 import { db } from '../../environments/environment';
@@ -57,7 +58,13 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   contactRequestSent = false;
   otherUserEmail = '';
 
+  // Typing & Message Delete
+  isOtherTyping = false;
+  activeMessageOptionsId: string | null = null;
+
   private unsubscribe: (() => void) | null = null;
+  private unsubscribeTyping: (() => void) | null = null;
+  private typingTimeout: any = null;
   private shouldScrollToBottom = true;
 
   constructor(
@@ -228,9 +235,35 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     return new Date(prev).toDateString() !== new Date(curr).toDateString();
   }
 
+  toggleMessageOptions(msg: any, event: Event) {
+    event.stopPropagation();
+    if (!msg.isOwn) return; // Solo se pueden eliminar mensajes propios
+    this.activeMessageOptionsId = this.activeMessageOptionsId === msg.id ? null : msg.id;
+  }
+
+  deleteMessage(msgId: string, event: Event) {
+    event.stopPropagation();
+    this.activeMessageOptionsId = null;
+    this.apiService.deleteMessage(this.roomId, msgId).subscribe({
+      next: () => {
+        this.messages = this.messages.filter(m => m.id !== msgId);
+      }
+    });
+  }
+
+  onInputChange() {
+    this.apiService.setTypingStatus(this.roomId, true).subscribe();
+    if (this.typingTimeout) clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
+      this.apiService.setTypingStatus(this.roomId, false).subscribe();
+    }, 2000);
+  }
+
   onEnterKey(event: any) {
     if (event.key === 'Enter') {
       this.sendMessage();
+    } else {
+      this.onInputChange();
     }
   }
 

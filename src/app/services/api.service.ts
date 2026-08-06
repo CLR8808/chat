@@ -511,4 +511,103 @@ export class ApiService {
     }
     return { ...data, members };
   }
+
+  // ==================================================================
+  // ELIMINACIÓN DE SALAS / CHATS, CONTACTOS Y MENSAJES
+  // ==================================================================
+
+  deleteRoom(roomId: string): Observable<any> {
+    return from(this.deleteRoomFirebase(roomId));
+  }
+
+  private async deleteRoomFirebase(roomId: string) {
+    const roomRef = doc(db, 'rooms', roomId);
+    await deleteDoc(roomRef);
+    return { success: true, id: roomId };
+  }
+
+  deleteContact(contactEmailOrId: string): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    return from(this.deleteContactFirebase(curr, contactEmailOrId));
+  }
+
+  private async deleteContactFirebase(currUser: any, contactKey: string) {
+    const currKey = currUser.id || currUser.email;
+
+    // Eliminar de los contactos del usuario actual
+    const myContactRef = doc(db, 'users', currKey, 'contacts', contactKey);
+    await deleteDoc(myContactRef);
+
+    // Eliminar también de los contactos del otro usuario si existe
+    const recipContactRef = doc(db, 'users', contactKey, 'contacts', currKey);
+    try {
+      await deleteDoc(recipContactRef);
+    } catch {}
+
+    return { success: true };
+  }
+
+  deleteMessage(roomId: string, messageId: string): Observable<any> {
+    return from(this.deleteMessageFirebase(roomId, messageId));
+  }
+
+  private async deleteMessageFirebase(roomId: string, messageId: string) {
+    const msgRef = doc(db, 'rooms', roomId, 'messages', messageId);
+    await deleteDoc(msgRef);
+    return { success: true, id: messageId };
+  }
+
+  // ==================================================================
+  // EDITAR PERFIL
+  // ==================================================================
+
+  updateProfile(data: { displayName?: string; bio?: string }): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(null);
+    return from(this.updateProfileFirebase(curr, data));
+  }
+
+  private async updateProfileFirebase(currUser: any, data: { displayName?: string; bio?: string }) {
+    const userKey = currUser.id || currUser.email;
+    const usersRef = collection(db, 'users');
+
+    if (data.displayName && data.displayName !== currUser.displayName) {
+      const q = query(usersRef, where('displayName', '==', data.displayName));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        throw new Error('Nombre de usuario ya existente');
+      }
+    }
+
+    const userDocRef = doc(db, 'users', userKey);
+    const updated = {
+      ...currUser,
+      displayName: data.displayName || currUser.displayName,
+      bio: data.bio !== undefined ? data.bio : (currUser.bio || '')
+    };
+
+    await setDoc(userDocRef, updated, { merge: true });
+    this.setCurrentUser(updated);
+    return updated;
+  }
+
+  // ==================================================================
+  // INDICADOR DE ESCRITURA (TYPING)
+  // ==================================================================
+
+  setTypingStatus(roomId: string, isTyping: boolean): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr || !roomId) return of(null);
+    return from(this.setTypingFirebase(roomId, curr.email, isTyping));
+  }
+
+  private async setTypingFirebase(roomId: string, userEmail: string, isTyping: boolean) {
+    const typingRef = doc(db, 'rooms', roomId, 'typing', userEmail.replace(/[@.]/g, '_'));
+    await setDoc(typingRef, {
+      email: userEmail,
+      isTyping: isTyping,
+      updatedAt: new Date().toISOString()
+    });
+  }
 }

@@ -22,7 +22,8 @@ import {
   chatbubbles,
   peopleOutline,
   bookOutline,
-  paperPlaneOutline
+  paperPlaneOutline,
+  trashOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -138,6 +139,18 @@ export class AggcontactoComponent implements OnInit {
         }
       }
     });
+  }
+
+  deleteContact(contact: any, event: Event) {
+    event.stopPropagation();
+    if (confirm(`¿Eliminar a ${contact.displayName || contact.email} de tus contactos?`)) {
+      const contactKey = contact.id || contact.email;
+      this.apiService.deleteContact(contactKey).subscribe({
+        next: () => {
+          this.userContacts = this.userContacts.filter(c => (c.id || c.email) !== contactKey);
+        }
+      });
+    }
   }
 
   openContactChat(contact: any) {

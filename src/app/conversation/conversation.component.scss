@@ -363,6 +363,35 @@
     }
   }
 
+  .msg-options-popover {
+    position: absolute;
+    top: -38px;
+    right: 0;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15);
+    padding: 4px;
+    z-index: 50;
+
+    .delete-msg-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: #ef4444;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 6px;
+
+      &:active {
+        background: #fee2e2;
+      }
+    }
+  }
+
   &.own-bubble {
     background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
     color: #ffffff;

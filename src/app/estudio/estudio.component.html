@@ -16,8 +16,14 @@
 
   <div class="content-container">
     <div class="banner-card">
-      <h3>Salas de Estudio Colaborativo</h3>
-      <p>Espacios dedicados exclusivamente a hilos de aprendizaje, resúmenes y guías de clase.</p>
+      <div class="banner-text">
+        <h3>Salas de Estudio Colaborativo</h3>
+        <p>Espacios dedicados exclusivamente a hilos de aprendizaje, resúmenes y guías de clase.</p>
+      </div>
+      <button class="create-badge-btn" (click)="createStudyRoom()">
+        <ion-icon name="add"></ion-icon>
+        Nueva
+      </button>
     </div>
 
     <!-- Study Rooms List -->
@@ -40,17 +46,25 @@
         *ngFor="let room of studyRooms"
         class="study-room-card"
         (click)="openRoom(room)">
+
         <div class="room-icon-box">
           <ion-icon [name]="room.icon || 'book-outline'"></ion-icon>
         </div>
+
         <div class="room-details">
-          <h4>{{ room.name }}</h4>
-          <p>{{ room.description || 'Sin descripción' }}</p>
+          <div class="room-top-row">
+            <h4>{{ room.name }}</h4>
+            <button class="delete-btn" (click)="deleteRoom(room, $event)" title="Eliminar sala">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+          <p class="room-desc">{{ room.description || 'Sin descripción' }}</p>
           <div class="room-meta">
             <span class="meta-tag">📖 Estudio</span>
             <span class="meta-members" *ngIf="room.members">{{ room.members.length }} miembro(s)</span>
           </div>
         </div>
+
       </div>
     </div>
   </div>

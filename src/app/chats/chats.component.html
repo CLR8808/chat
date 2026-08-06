@@ -8,11 +8,11 @@
   <div class="header">
     <div class="user-info">
       <div class="avatar">
-        <img [src]="currentUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'" alt="Avatar" />
+        <span>{{ (currentUser?.displayName || currentUser?.email || 'U').charAt(0).toUpperCase() }}</span>
       </div>
       <div class="user-details">
         <h2>Salas de chat</h2>
-        <p>{{ currentUser?.email || 'alumno@correo.com' }}</p>
+        <p>@{{ currentUser?.displayName || currentUser?.email?.split('@')[0] }}</p>
       </div>
     </div>
 
@@ -75,7 +75,12 @@
       <div class="room-content">
         <div class="title-row">
           <h3>{{ room.name }}</h3>
-          <span class="time-stamp">{{ room.lastMessageTime || 'Ahora' }}</span>
+          <div class="time-delete-row">
+            <span class="time-stamp">{{ room.lastMessageTime || 'Ahora' }}</span>
+            <button class="delete-chat-btn" (click)="deleteRoom(room, $event)" title="Eliminar chat">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
         </div>
         <div class="message-row">
           <p class="message-text">{{ room.lastMessage || room.description || 'Sin mensajes aún' }}</p>
