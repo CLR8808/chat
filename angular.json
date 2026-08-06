@@ -38,6 +38,16 @@
                 "glob": "_redirects",
                 "input": "src/assets",
                 "output": "/"
+              },
+              {
+                "glob": "manifest.webmanifest",
+                "input": "src/assets",
+                "output": "/"
+              },
+              {
+                "glob": "sw.js",
+                "input": "src/assets",
+                "output": "/"
               }
             ],
             "styles": ["src/global.scss", "src/theme/variables.scss"],

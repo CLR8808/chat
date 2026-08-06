@@ -1,26 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
   <meta charset="utf-8" />
-  <title>Ionic App</title>
+  <title>Chat Aula</title>
 
   <base href="/" />
 
-  <meta name="color-scheme" content="light dark" />
+  <meta name="color-scheme" content="light" />
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="msapplication-tap-highlight" content="no" />
+  <meta name="theme-color" content="#0052cc" />
 
-  <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="assets/icon/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" />
 
-  <!-- add to homescreen for ios -->
+  <!-- Add to homescreen for iOS -->
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Chat Aula" />
 </head>
 
 <body>
   <app-root></app-root>
+
+  <!-- Service Worker Registration for PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+          console.log('✅ ServiceWorker PWA registrado con éxito:', registration.scope);
+        }, function(err) {
+          console.log('❌ Error al registrar ServiceWorker PWA:', err);
+        });
+      });
+    }
+  </script>
 </body>
 
 </html>
