@@ -84,7 +84,7 @@
         </div>
         <div class="message-row">
           <p class="message-text">{{ room.lastMessage || room.description || 'Sin mensajes aún' }}</p>
-          <span *ngIf="room.unreadCount" class="badge">{{ room.unreadCount }}</span>
+          <span *ngIf="getUnreadCount(room) > 0" class="unread-dot"></span>
         </div>
       </div>
     </div>

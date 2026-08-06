@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -36,10 +36,13 @@ import { ApiService } from '../services/api.service';
     IonIcon
   ]
 })
-export class NotificacionesComponent implements OnInit {
+export class NotificacionesComponent implements OnInit, OnDestroy {
 
   notificationsList: any[] = [];
   isLoading = false;
+
+  // Subscriptions
+  private notifSub: any = null;
 
   constructor(
     private router: Router,
@@ -63,9 +66,15 @@ export class NotificacionesComponent implements OnInit {
     this.loadNotifications();
   }
 
+  ngOnDestroy() {
+    if (this.notifSub) {
+      this.notifSub.unsubscribe();
+    }
+  }
+
   loadNotifications() {
     this.isLoading = true;
-    this.apiService.getNotifications().subscribe({
+    this.notifSub = this.apiService.getNotificationsRealtime().subscribe({
       next: (data) => {
         this.notificationsList = data || [];
         this.isLoading = false;

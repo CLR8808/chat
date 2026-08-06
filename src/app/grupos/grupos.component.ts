@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -46,7 +46,7 @@ import { ApiService } from '../services/api.service';
     IonInput
   ]
 })
-export class GruposComponent implements OnInit {
+export class GruposComponent implements OnInit, OnDestroy {
   activeTab = 'groups';
   groupRooms: any[] = [];
   isLoading = false;
@@ -55,6 +55,9 @@ export class GruposComponent implements OnInit {
   isMemberModalOpen = false;
   selectedRoomForMember: any = null;
   userContacts: any[] = [];
+
+  // Subscriptions
+  private roomsSub: any = null;
 
   constructor(
     private router: Router,
@@ -94,9 +97,15 @@ export class GruposComponent implements OnInit {
     this.loadContacts();
   }
 
+  ngOnDestroy() {
+    if (this.roomsSub) {
+      this.roomsSub.unsubscribe();
+    }
+  }
+
   loadGroups() {
     this.isLoading = true;
-    this.apiService.getRooms().subscribe({
+    this.roomsSub = this.apiService.getRoomsRealtime().subscribe({
       next: (rooms) => {
         this.isLoading = false;
         // Solo mostrar grupos (excluir chats directos 1-a-1 y estudio)
@@ -109,6 +118,10 @@ export class GruposComponent implements OnInit {
         this.groupRooms = [];
       }
     });
+  }
+
+  getUnreadCount(room: any): number {
+    return this.apiService.getMyUnreadCount(room);
   }
 
   loadContacts() {

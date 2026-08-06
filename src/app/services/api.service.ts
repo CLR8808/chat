@@ -10,6 +10,7 @@ import {
   getDocs,
   getDoc,
   deleteDoc,
+  updateDoc,
   query,
   where,
   onSnapshot
@@ -609,5 +610,149 @@ export class ApiService {
       isTyping: isTyping,
       updatedAt: new Date().toISOString()
     });
+  }
+
+  // ==================================================================
+  // REALTIME LISTENERS
+  // ==================================================================
+
+  /**
+   * Returns an Observable that emits the list of rooms the current user
+   * belongs to, updating in real time via Firestore onSnapshot.
+   */
+  getRoomsRealtime(category?: string): Observable<any[]> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of([]);
+    const userEmail = curr.email;
+
+    return new Observable<any[]>((observer) => {
+      const roomsRef = collection(db, 'rooms');
+      const unsubscribe = onSnapshot(roomsRef, (snapshot) => {
+        const userRooms = snapshot.docs
+          .map(d => d.data())
+          .filter(room => {
+            const members: string[] = room['members'] || [];
+            const createdBy: string = room['createdBy'] || '';
+            const isMember = members.includes(userEmail) || createdBy === userEmail;
+            if (!isMember) return false;
+            if (category && category !== 'todas') {
+              return room['category'] === category;
+            }
+            return true;
+          })
+          .map(room => {
+            if (room['category'] === 'direct' && room['participantNames']) {
+              const otherEmail = (room['members'] || []).find((m: string) => m !== userEmail);
+              if (otherEmail && room['participantNames'][otherEmail]) {
+                return { ...room, name: room['participantNames'][otherEmail] };
+              }
+            }
+            return room;
+          });
+        observer.next(userRooms);
+      }, (error) => {
+        observer.error(error);
+      });
+
+      // Teardown: unsubscribe from Firestore when the Observable is unsubscribed
+      return () => unsubscribe();
+    });
+  }
+
+  /**
+   * Returns an Observable that emits the current user's notifications
+   * list in real time via Firestore onSnapshot.
+   */
+  getNotificationsRealtime(): Observable<any[]> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of([]);
+    const userKey = curr.id || curr.email;
+
+    return new Observable<any[]>((observer) => {
+      const notifRef = collection(db, 'users', userKey, 'notifications');
+      const unsubscribe = onSnapshot(notifRef, (snapshot) => {
+        observer.next(snapshot.docs.map(d => d.data()));
+      }, (error) => {
+        observer.error(error);
+      });
+      return () => unsubscribe();
+    });
+  }
+
+  /**
+   * Returns an Observable that emits the pending notification count
+   * in real time via Firestore onSnapshot.
+   */
+  getNotificationCountRealtime(): Observable<number> {
+    const curr = this.getCurrentUser();
+    if (!curr) return of(0);
+    const userKey = curr.id || curr.email;
+
+    return new Observable<number>((observer) => {
+      const notifRef = collection(db, 'users', userKey, 'notifications');
+      const q = query(notifRef, where('status', '==', 'pending'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        observer.next(snapshot.size);
+      }, (error) => {
+        observer.error(error);
+      });
+      return () => unsubscribe();
+    });
+  }
+
+  // ==================================================================
+  // UNREAD COUNTS
+  // ==================================================================
+
+  /**
+   * Marks a room as read for the current user by setting their
+   * entry in the unreadCounts map to 0.
+   */
+  markRoomAsRead(roomId: string): Observable<any> {
+    const curr = this.getCurrentUser();
+    if (!curr || !roomId) return of(null);
+    const userEmail = curr.email;
+    const safeKey = userEmail.replace(/[@.]/g, '_');
+    const roomRef = doc(db, 'rooms', roomId);
+    return from(updateDoc(roomRef, { [`unreadCounts.${safeKey}`]: 0 }));
+  }
+
+  /**
+   * Increments the unread count for all room members except the sender.
+   * Called when a message is sent.
+   */
+  async incrementUnreadForOthers(roomId: string): Promise<void> {
+    const curr = this.getCurrentUser();
+    if (!curr || !roomId) return;
+
+    const roomRef = doc(db, 'rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) return;
+
+    const data = roomSnap.data();
+    const members: string[] = data['members'] || [];
+    const unreadCounts: Record<string, number> = data['unreadCounts'] || {};
+
+    const updates: Record<string, number> = {};
+    for (const member of members) {
+      if (member === curr.email) continue;
+      const safeKey = member.replace(/[@.]/g, '_');
+      updates[`unreadCounts.${safeKey}`] = (unreadCounts[safeKey] || 0) + 1;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(roomRef, updates);
+    }
+  }
+
+  /**
+   * Returns the unread count for the current user in a given room.
+   */
+  getMyUnreadCount(room: any): number {
+    const curr = this.getCurrentUser();
+    if (!curr) return 0;
+    const safeKey = curr.email.replace(/[@.]/g, '_');
+    const counts = room['unreadCounts'] || {};
+    return counts[safeKey] || 0;
   }
 }

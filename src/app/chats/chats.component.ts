@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -47,7 +47,7 @@ import { ApiService } from '../services/api.service';
     IonInput
   ]
 })
-export class ChatsComponent implements OnInit {
+export class ChatsComponent implements OnInit, OnDestroy {
 
   searchQuery = '';
   activeTab = 'chats';
@@ -55,6 +55,10 @@ export class ChatsComponent implements OnInit {
 
   // FAB state
   isFabOpen = false;
+
+  // Subscriptions
+  private roomsSub: any = null;
+  private notifSub: any = null;
 
   categories = [
     { label: 'Todas', value: 'todas', active: true },
@@ -110,8 +114,17 @@ export class ChatsComponent implements OnInit {
     this.loadNotificationsCount();
   }
 
+  ngOnDestroy() {
+    if (this.roomsSub) {
+      this.roomsSub.unsubscribe();
+    }
+    if (this.notifSub) {
+      this.notifSub.unsubscribe();
+    }
+  }
+
   loadNotificationsCount() {
-    this.apiService.getNotificationCount().subscribe({
+    this.notifSub = this.apiService.getNotificationCountRealtime().subscribe({
       next: (count) => {
         this.notificationCount = count;
       }
@@ -124,7 +137,7 @@ export class ChatsComponent implements OnInit {
 
   loadRooms() {
     this.isLoading = true;
-    this.apiService.getRooms(this.selectedCategory).subscribe({
+    this.roomsSub = this.apiService.getRoomsRealtime(this.selectedCategory).subscribe({
       next: (data) => {
         this.isLoading = false;
         // Mostrar todo excepto la categoría 'estudio' (tiene su propia pantalla)
@@ -135,6 +148,10 @@ export class ChatsComponent implements OnInit {
         this.rooms = [];
       }
     });
+  }
+
+  getUnreadCount(room: any): number {
+    return this.apiService.getMyUnreadCount(room);
   }
 
   toggleFab() {
@@ -169,6 +186,10 @@ export class ChatsComponent implements OnInit {
   selectCategory(categoryValue: string) {
     this.selectedCategory = categoryValue;
     this.categories.forEach(c => c.active = (c.value === categoryValue));
+    // Unsubscribe from previous listener before creating a new one
+    if (this.roomsSub) {
+      this.roomsSub.unsubscribe();
+    }
     this.loadRooms();
   }
 

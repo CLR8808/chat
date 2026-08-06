@@ -106,6 +106,13 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     if (this.unsubscribe) {
       this.unsubscribe();
     }
+    if (this.unsubscribeTyping) {
+      this.unsubscribeTyping();
+    }
+    // Clear typing status when leaving
+    if (this.roomId) {
+      this.apiService.setTypingStatus(this.roomId, false).subscribe();
+    }
   }
 
   async loadRoomAndMessages() {
@@ -145,6 +152,9 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
     this.contactInitial = this.contactName.charAt(0).toUpperCase();
     this.isLoading = false;
+
+    // Mark room as read when entering
+    this.apiService.markRoomAsRead(this.roomId).subscribe();
 
     // Suscribirse a mensajes
     const msgsRef = collection(db, 'rooms', this.roomId, 'messages');
@@ -195,6 +205,9 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     };
 
     await addDoc(msgsRef, msg);
+
+    // Increment unread counts for other members
+    await this.apiService.incrementUnreadForOthers(this.roomId);
 
     const roomRef = doc(db, 'rooms', this.roomId);
     await updateDoc(roomRef, {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -35,10 +35,13 @@ import { ApiService } from '../services/api.service';
     IonIcon
   ]
 })
-export class EstudioComponent implements OnInit {
+export class EstudioComponent implements OnInit, OnDestroy {
   activeTab = 'study';
   studyRooms: any[] = [];
   isLoading = false;
+
+  // Subscriptions
+  private roomsSub: any = null;
 
   constructor(
     private router: Router,
@@ -61,9 +64,15 @@ export class EstudioComponent implements OnInit {
     this.loadStudyRooms();
   }
 
+  ngOnDestroy() {
+    if (this.roomsSub) {
+      this.roomsSub.unsubscribe();
+    }
+  }
+
   loadStudyRooms() {
     this.isLoading = true;
-    this.apiService.getRooms('estudio').subscribe({
+    this.roomsSub = this.apiService.getRoomsRealtime('estudio').subscribe({
       next: (data) => {
         this.isLoading = false;
         this.studyRooms = data || [];
@@ -73,6 +82,10 @@ export class EstudioComponent implements OnInit {
         this.studyRooms = [];
       }
     });
+  }
+
+  getUnreadCount(room: any): number {
+    return this.apiService.getMyUnreadCount(room);
   }
 
   logout() {

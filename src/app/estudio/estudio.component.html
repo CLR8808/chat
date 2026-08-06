@@ -53,7 +53,10 @@
 
         <div class="room-details">
           <div class="room-top-row">
-            <h4>{{ room.name }}</h4>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h4>{{ room.name }}</h4>
+              <span *ngIf="getUnreadCount(room) > 0" class="unread-dot"></span>
+            </div>
             <button class="delete-btn" (click)="deleteRoom(room, $event)" title="Eliminar sala">
               <ion-icon name="trash-outline"></ion-icon>
             </button>

@@ -41,7 +41,10 @@
 
         <div class="group-info">
           <div class="group-header-row">
-            <h4>{{ room.name }}</h4>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h4>{{ room.name }}</h4>
+              <span *ngIf="getUnreadCount(room) > 0" class="unread-dot"></span>
+            </div>
             <div class="group-header-right">
               <span class="category-badge">{{ room.category || 'General' }}</span>
               <button class="delete-group-btn" (click)="deleteGroup(room, $event)" title="Eliminar grupo">
