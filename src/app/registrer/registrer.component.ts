@@ -32,6 +32,7 @@ import {
   closeCircleOutline
 } from 'ionicons/icons';
 
+import { AuthService } from '../services/auth.service';
 import { ApiService } from '../services/api.service';
 
 @Component({
@@ -64,6 +65,7 @@ export class RegistrerComponent {
   constructor(
     private fb: FormBuilder,
     private router: Router,
+    private authService: AuthService,
     private apiService: ApiService
   ) {
     addIcons({
@@ -120,7 +122,7 @@ export class RegistrerComponent {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 
-  register() {
+  async register() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -141,23 +143,21 @@ export class RegistrerComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.apiService.register({ displayName, email, password }).subscribe({
-      next: (res) => {
-        this.isLoading = false;
-        console.log('✅ Usuario registrado:', res);
-        this.router.navigate(['/chats']);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('❌ Error al registrar:', err);
-        if (err.message && err.message.includes('Nombre')) {
-          this.errorMessage = err.message;
-          this.nameCheckStatus = 'taken';
-        } else {
-          this.errorMessage = err.error?.message || err.message || 'Error al conectar con el servidor';
-        }
+    try {
+      const user = await this.authService.register({ displayName, email, password });
+      this.isLoading = false;
+      console.log('✅ Usuario registrado:', user);
+      this.router.navigate(['/chats']);
+    } catch (err: any) {
+      this.isLoading = false;
+      console.error('❌ Error al registrar:', err);
+      if (err.message && err.message.includes('Nombre')) {
+        this.errorMessage = err.message;
+        this.nameCheckStatus = 'taken';
+      } else {
+        this.errorMessage = AuthService.getErrorMessage(err);
       }
-    });
+    }
   }
 
   goLogin() {

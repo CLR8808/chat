@@ -28,7 +28,7 @@ import {
   shieldCheckmarkOutline
 } from 'ionicons/icons';
 
-import { ApiService } from '../services/api.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -49,13 +49,14 @@ export class LoginComponent {
   showPassword = false;
   isLoading = false;
   errorMessage = '';
+  successMessage = '';
 
   loginForm: FormGroup;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private apiService: ApiService
+    private authService: AuthService
   ) {
     addIcons({
       chatboxEllipsesOutline,
@@ -91,7 +92,7 @@ export class LoginComponent {
     this.showPassword = !this.showPassword;
   }
 
-  login() {
+  async login() {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -99,29 +100,41 @@ export class LoginComponent {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
     const credentials = this.loginForm.value;
 
-    this.apiService.login(credentials).subscribe({
-      next: (user) => {
-        this.isLoading = false;
-        console.log('✅ Sesión iniciada:', user);
-        this.router.navigate(['/chats']);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('❌ Error al iniciar sesión:', err);
-        this.errorMessage = err.error?.message || 'Correo o contraseña incorrectos';
-      }
-    });
+    try {
+      const user = await this.authService.login(credentials);
+      this.isLoading = false;
+      console.log('✅ Sesión iniciada:', user);
+      this.router.navigate(['/chats']);
+    } catch (err: any) {
+      this.isLoading = false;
+      console.error('❌ Error al iniciar sesión:', err);
+      this.errorMessage = AuthService.getErrorMessage(err);
+    }
   }
 
   createAccount() {
     this.router.navigate(['/registrer']);
   }
 
-  forgotPassword() {
-    console.log('Recuperar contraseña');
+  async forgotPassword() {
+    const email = this.loginForm.get('email')?.value;
+    if (!email) {
+      this.errorMessage = 'Ingresa tu correo electrónico para recuperar la contraseña.';
+      return;
+    }
+
+    try {
+      await this.authService.forgotPassword(email);
+      this.successMessage = 'Se envió un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.';
+      this.errorMessage = '';
+    } catch (err: any) {
+      this.errorMessage = AuthService.getErrorMessage(err);
+      this.successMessage = '';
+    }
   }
 
 }

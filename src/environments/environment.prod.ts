@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 export const environment = {
   production: true,
@@ -15,3 +16,4 @@ export const environment = {
 
 export const app = initializeApp(environment.firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);

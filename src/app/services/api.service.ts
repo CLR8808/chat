@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, from, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { db } from '../../environments/environment';
 import {
   collection,
@@ -17,6 +17,7 @@ import {
   arrayUnion
 } from 'firebase/firestore';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { AuthService } from './auth.service';
 
 export interface RoomData {
   id?: string;
@@ -38,121 +39,42 @@ export interface RoomData {
 })
 export class ApiService {
   private apiUrl = 'http://localhost:3000';
-  private currentUser: any = null;
 
-  constructor(private http: HttpClient) {
-    const saved = localStorage.getItem('currentUser');
-    if (saved) {
-      this.currentUser = JSON.parse(saved);
-    }
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
+
+  // ==================================================================
+  // USER HELPERS (delegated to AuthService)
+  // ==================================================================
+
+  getCurrentUser() {
+    return this.authService.getCurrentUser();
+  }
+
+  logout() {
+    this.authService.logout();
   }
 
   // ==================================================================
-  // REGISTRO Y LOGIN
+  // DISPLAY NAME CHECK
   // ==================================================================
 
-  register(userData: { email: string; password: string; displayName: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/users/register`, userData).pipe(
-      tap((user: any) => this.setCurrentUser(user)),
-      catchError((httpErr) => {
-        console.warn('⚠️ Backend no disponible. Conectando directo a Firebase...', httpErr);
-        return from(this.registerDirectFirebase(userData)).pipe(
-          tap((user: any) => this.setCurrentUser(user))
-        );
-      })
-    );
-  }
-
-  private async registerDirectFirebase(userData: { email: string; password: string; displayName: string }) {
-    const usersRef = collection(db, 'users');
-
-    // Verificar email duplicado
-    const emailQuery = query(usersRef, where('email', '==', userData.email));
-    const emailSnap = await getDocs(emailQuery);
-    if (!emailSnap.empty) {
-      throw new Error('El usuario ya existe con ese correo');
-    }
-
-    // Verificar displayName duplicado
-    const nameQuery = query(usersRef, where('displayName', '==', userData.displayName));
-    const nameSnap = await getDocs(nameQuery);
-    if (!nameSnap.empty) {
-      throw new Error('Nombre de usuario ya existente');
-    }
-
-    const newDocRef = doc(usersRef);
-    const user = {
-      id: newDocRef.id,
-      email: userData.email,
-      password: userData.password,
-      displayName: userData.displayName,
-      photoURL: '',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString()
-    };
-
-    await setDoc(newDocRef, user);
-    const { password, ...result } = user;
-    return result;
-  }
-
-  // Verificar disponibilidad de displayName
   checkDisplayNameAvailable(name: string): Observable<boolean> {
     return from(this.checkDisplayNameFirebase(name));
   }
 
   private async checkDisplayNameFirebase(name: string): Promise<boolean> {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('displayName', '==', name));
-    const snapshot = await getDocs(q);
-    return snapshot.empty; // true = disponible
-  }
-
-  login(credentials: { email: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/users/login`, credentials).pipe(
-      tap((user: any) => this.setCurrentUser(user)),
-      catchError((httpErr) => {
-        console.warn('⚠️ Backend no disponible. Autenticando con Firebase...', httpErr);
-        return from(this.loginDirectFirebase(credentials)).pipe(
-          tap((user: any) => this.setCurrentUser(user))
-        );
-      })
-    );
-  }
-
-  private async loginDirectFirebase(credentials: { email: string; password: string }) {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', credentials.email), where('password', '==', credentials.password));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      throw new Error('Correo o contraseña incorrectos');
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('displayName', '==', name));
+      const snapshot = await getDocs(q);
+      return snapshot.empty; // true = disponible
+    } catch (e) {
+      // If unauthenticated or rules restrict collection query, return true to avoid blocking
+      return true;
     }
-
-    const docSnap = snapshot.docs[0];
-    const userData = docSnap.data();
-    const { password, ...result } = userData;
-    return result;
-  }
-
-  setCurrentUser(user: any) {
-    this.currentUser = user;
-    localStorage.setItem('currentUser', JSON.stringify(user));
-  }
-
-  getCurrentUser() {
-    if (!this.currentUser) {
-      const saved = localStorage.getItem('currentUser');
-      if (saved) {
-        this.currentUser = JSON.parse(saved);
-      }
-    }
-    return this.currentUser;
-  }
-
-  logout() {
-    this.currentUser = null;
-    localStorage.removeItem('currentUser');
   }
 
   // ==================================================================
@@ -169,15 +91,17 @@ export class ApiService {
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     return snapshot.docs.map(doc => {
-      const { password, ...data } = doc.data();
-      return data;
+      const data = doc.data();
+      // Never expose password even if it exists on legacy docs
+      const { password, ...safe } = data as any;
+      return safe;
     });
   }
 
   getContacts(): Observable<any[]> {
     const curr = this.getCurrentUser();
     if (!curr) return of([]);
-    return from(this.getContactsFirebase(curr.id || curr.email));
+    return from(this.getContactsFirebase(curr.uid));
   }
 
   private async getContactsFirebase(userKey: string): Promise<any[]> {
@@ -189,7 +113,7 @@ export class ApiService {
   isContact(contactEmail: string): Observable<boolean> {
     const curr = this.getCurrentUser();
     if (!curr) return of(false);
-    return from(this.isContactFirebase(curr.id || curr.email, contactEmail));
+    return from(this.isContactFirebase(curr.uid, contactEmail));
   }
 
   private async isContactFirebase(userKey: string, contactEmail: string): Promise<boolean> {
@@ -205,8 +129,8 @@ export class ApiService {
   }
 
   private async sendContactRequestFirebase(currUser: any, targetUser: any) {
-    const targetKey = targetUser.id || targetUser.email;
-    const currKey = currUser.id || currUser.email;
+    const targetKey = targetUser.uid || targetUser.id || targetUser.email;
+    const currKey = currUser.uid;
 
     // Verificar que no haya solicitud previa
     const notifRef = collection(db, 'users', targetKey, 'notifications');
@@ -293,7 +217,7 @@ export class ApiService {
   getNotifications(): Observable<any[]> {
     const curr = this.getCurrentUser();
     if (!curr) return of([]);
-    const userKey = curr.id || curr.email;
+    const userKey = curr.uid;
     return from(this.getNotificationsFirebase(userKey));
   }
 
@@ -306,7 +230,7 @@ export class ApiService {
   getNotificationCount(): Observable<number> {
     const curr = this.getCurrentUser();
     if (!curr) return of(0);
-    const userKey = curr.id || curr.email;
+    const userKey = curr.uid;
     return from(this.getNotificationCountFirebase(userKey));
   }
 
@@ -324,7 +248,7 @@ export class ApiService {
   }
 
   private async acceptContactFirebase(currUser: any, notification: any) {
-    const currKey = currUser.id || currUser.email;
+    const currKey = currUser.uid;
     const fromKey = notification.fromId;
     const fromEmail = notification.fromEmail;
     const fromName = notification.fromDisplayName;
@@ -365,7 +289,7 @@ export class ApiService {
   rejectContactRequest(notification: any): Observable<any> {
     const curr = this.getCurrentUser();
     if (!curr) return of(null);
-    const currKey = curr.id || curr.email;
+    const currKey = curr.uid;
     return from(this.rejectContactFirebase(currKey, notification));
   }
 
@@ -383,8 +307,8 @@ export class ApiService {
   }
 
   private async addContactDirectFirebase(currUser: any, contactUser: any) {
-    const currKey = currUser.id || currUser.email;
-    const contactKey = contactUser.id || contactUser.email;
+    const currKey = currUser.uid;
+    const contactKey = contactUser.uid || contactUser.id || contactUser.email;
 
     const contactsRef = doc(db, 'users', currKey, 'contacts', contactKey);
     const contactData = {
@@ -540,7 +464,7 @@ export class ApiService {
   }
 
   private async deleteContactFirebase(currUser: any, contactKey: string) {
-    const currKey = currUser.id || currUser.email;
+    const currKey = currUser.uid;
 
     // Eliminar de los contactos del usuario actual
     const myContactRef = doc(db, 'users', currKey, 'contacts', contactKey);
@@ -576,7 +500,7 @@ export class ApiService {
   }
 
   private async updateProfileFirebase(currUser: any, data: { displayName?: string; bio?: string }) {
-    const userKey = currUser.id || currUser.email;
+    const userKey = currUser.uid;
     const usersRef = collection(db, 'users');
 
     if (data.displayName && data.displayName !== currUser.displayName) {
@@ -595,7 +519,10 @@ export class ApiService {
     };
 
     await setDoc(userDocRef, updated, { merge: true });
-    this.setCurrentUser(updated);
+
+    // Update AuthService state
+    this.authService.updateCurrentUserProfile(updated);
+
     return updated;
   }
 
@@ -632,16 +559,22 @@ export class ApiService {
     // Pedir permisos de antemano si es posible
     LocalNotifications.requestPermissions().catch(() => {});
 
-    this.getRoomsRealtime().subscribe(rooms => {
-      rooms.forEach(room => {
-        const myUnread = this.getMyUnreadCount(room);
-        const prevUnread = this.previousUnreadCounts[room.id] || 0;
+    this.authService.currentUser$.subscribe(user => {
+      if (!user) {
+        this.previousUnreadCounts = {};
+        return;
+      }
+      this.getRoomsRealtime().subscribe(rooms => {
+        rooms.forEach(room => {
+          const myUnread = this.getMyUnreadCount(room);
+          const prevUnread = this.previousUnreadCounts[room.id] || 0;
 
-        // Si el conteo sube, significa que llegó un mensaje nuevo y no lo hemos leído aún
-        if (myUnread > prevUnread) {
-          this.showLocalNotification(room.name || 'Nuevo mensaje', room.lastMessage || 'Tienes un nuevo mensaje');
-        }
-        this.previousUnreadCounts[room.id] = myUnread;
+          // Si el conteo sube, significa que llegó un mensaje nuevo y no lo hemos leído aún
+          if (myUnread > prevUnread) {
+            this.showLocalNotification(room.name || 'Nuevo mensaje', room.lastMessage || 'Tienes un nuevo mensaje');
+          }
+          this.previousUnreadCounts[room.id] = myUnread;
+        });
       });
     });
   }
@@ -720,7 +653,7 @@ export class ApiService {
   getNotificationsRealtime(): Observable<any[]> {
     const curr = this.getCurrentUser();
     if (!curr) return of([]);
-    const userKey = curr.id || curr.email;
+    const userKey = curr.uid;
 
     return new Observable<any[]>((observer) => {
       const notifRef = collection(db, 'users', userKey, 'notifications');
@@ -740,7 +673,7 @@ export class ApiService {
   getNotificationCountRealtime(): Observable<number> {
     const curr = this.getCurrentUser();
     if (!curr) return of(0);
-    const userKey = curr.id || curr.email;
+    const userKey = curr.uid;
 
     return new Observable<number>((observer) => {
       const notifRef = collection(db, 'users', userKey, 'notifications');
