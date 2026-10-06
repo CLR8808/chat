@@ -93,18 +93,59 @@ export class AuthService {
   // ==================================================================
 
   async register(userData: { email: string; password: string; displayName: string }): Promise<UserProfile> {
-    // 1. Create Firebase Auth user FIRST (this authenticates the user)
-    const credential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+    const targetName = (userData.displayName || '').trim().toLowerCase();
+
+    // 1. Validar que el nombre no esté ya en uso (case-insensitive) antes de crear auth
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      const nameTaken = snapshot.docs.some(docSnap => {
+        const existingName = (docSnap.data()['displayName'] || '').trim().toLowerCase();
+        return existingName === targetName;
+      });
+
+      if (nameTaken) {
+        throw new Error('Nombre de usuario ya existente. Elige otro.');
+      }
+    } catch (err: any) {
+      if (err.message && err.message.includes('Nombre de usuario ya existente')) {
+        throw err;
+      }
+    }
+
+    // 2. Crear usuario en Firebase Auth
+    const credential = await createUserWithEmailAndPassword(auth, userData.email.trim(), userData.password);
     const firebaseUser = credential.user;
 
-    // 2. Set displayName on Firebase Auth profile
-    await updateProfile(firebaseUser, { displayName: userData.displayName });
+    // 3. Doble verificación con permisos autenticados (por si la lectura anónima previa fue restringida)
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      const duplicateFound = snapshot.docs.some(docSnap => {
+        if (docSnap.id === firebaseUser.uid) return false;
+        const existingName = (docSnap.data()['displayName'] || '').trim().toLowerCase();
+        return existingName === targetName;
+      });
 
-    // 3. Create user document in Firestore using uid as document ID
+      if (duplicateFound) {
+        // Revertir creación en Firebase Auth para no dejar cuentas huérfanas
+        await firebaseUser.delete();
+        throw new Error('Nombre de usuario ya existente. Elige otro.');
+      }
+    } catch (err: any) {
+      if (err.message && err.message.includes('Nombre de usuario ya existente')) {
+        throw err;
+      }
+    }
+
+    // 4. Set displayName on Firebase Auth profile
+    await updateProfile(firebaseUser, { displayName: userData.displayName.trim() });
+
+    // 5. Create user document in Firestore using uid as document ID
     const profile: UserProfile = {
       uid: firebaseUser.uid,
-      email: userData.email,
-      displayName: userData.displayName,
+      email: userData.email.trim(),
+      displayName: userData.displayName.trim(),
       photoURL: '',
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString()

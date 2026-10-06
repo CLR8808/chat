@@ -15,8 +15,8 @@ service cloud.firestore {
     // USERS COLLECTION
     // -------------------------------------------------------------
     match /users/{userId} {
-      // Any authenticated user can read profiles (needed for contacts and member names)
-      allow read: if isAuthenticated();
+      // Allows verifying unique username availability on registration and viewing contacts/profiles
+      allow read: if true;
       // Only the user themselves can create or update their own profile document
       allow create, update: if isOwner(userId);
       allow delete: if isOwner(userId);

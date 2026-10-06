@@ -68,11 +68,15 @@ export class ApiService {
   private async checkDisplayNameFirebase(name: string): Promise<boolean> {
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('displayName', '==', name));
-      const snapshot = await getDocs(q);
-      return snapshot.empty; // true = disponible
+      const snapshot = await getDocs(usersRef);
+      const target = (name || '').trim().toLowerCase();
+      const exists = snapshot.docs.some(d => {
+        const dName = (d.data()['displayName'] || '').trim().toLowerCase();
+        return dName === target;
+      });
+      return !exists; // true = disponible, false = ya tomado
     } catch (e) {
-      // If unauthenticated or rules restrict collection query, return true to avoid blocking
+      console.warn('Error comprobando nombre:', e);
       return true;
     }
   }
