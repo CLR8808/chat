@@ -86,9 +86,7 @@ export class ApiService {
   // ==================================================================
 
   getAllRegisteredUsers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/users`).pipe(
-      catchError(() => from(this.getAllRegisteredUsersFirebase()))
-    );
+    return from(this.getAllRegisteredUsersFirebase());
   }
 
   private async getAllRegisteredUsersFirebase(): Promise<any[]> {
@@ -96,9 +94,10 @@ export class ApiService {
     const snapshot = await getDocs(usersRef);
     return snapshot.docs.map(doc => {
       const data = doc.data();
+      const uid = data['uid'] || doc.id;
       // Never expose password even if it exists on legacy docs
       const { password, ...safe } = data as any;
-      return safe;
+      return { ...safe, uid, id: uid };
     });
   }
 
@@ -133,30 +132,49 @@ export class ApiService {
   }
 
   private async sendContactRequestFirebase(currUser: any, targetUser: any) {
-    const targetKey = targetUser.uid || targetUser.id || targetUser.email;
-    const currKey = currUser.uid;
-
-    // Verificar que no haya solicitud previa
-    const notifRef = collection(db, 'users', targetKey, 'notifications');
-    const existingQuery = query(notifRef,
-      where('type', '==', 'contact_request'),
-      where('fromEmail', '==', currUser.email)
-    );
-    const existingSnap = await getDocs(existingQuery);
-    if (!existingSnap.empty) {
-      return { status: 'already_sent' };
+    let targetKey = targetUser.uid || targetUser.id;
+    if (!targetKey && targetUser.email) {
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', targetUser.email));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          targetKey = snap.docs[0].id;
+        }
+      } catch (e) {
+        console.warn('Error querying target user UID by email:', e);
+      }
     }
 
+    if (!targetKey) {
+      targetKey = targetUser.email;
+    }
+
+    const currKey = currUser.uid;
+
     // Verificar que no sean ya contactos
-    const isAlready = await this.isContactFirebase(currKey, targetUser.email);
-    if (isAlready) {
-      return { status: 'already_contact' };
+    try {
+      const isAlready = await this.isContactFirebase(currKey, targetUser.email);
+      if (isAlready) {
+        return { status: 'already_contact' };
+      }
+    } catch (e) {
+      console.warn('Error checking isContact:', e);
+    }
+
+    // Verificar que no haya solicitud previa usando el ID determinístico `req_${currKey}`
+    const notifDocRef = doc(db, 'users', targetKey, 'notifications', `req_${currKey}`);
+    try {
+      const existingSnap = await getDoc(notifDocRef);
+      if (existingSnap.exists()) {
+        return { status: 'already_sent' };
+      }
+    } catch (e) {
+      console.warn('Could not read existing notification directly:', e);
     }
 
     // Crear notificación
-    const notifDoc = doc(notifRef);
     const notification = {
-      id: notifDoc.id,
+      id: `req_${currKey}`,
       type: 'contact_request',
       fromId: currKey,
       fromEmail: currUser.email,
@@ -166,7 +184,7 @@ export class ApiService {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    await setDoc(notifDoc, notification);
+    await setDoc(notifDocRef, notification);
 
     // Crear sala directa anticipada para poder enviar mensajes sin agregar
     await this.ensureDirectRoom(currUser, targetUser);
@@ -261,6 +279,7 @@ export class ApiService {
     const myContactsRef = doc(db, 'users', currKey, 'contacts', fromKey);
     await setDoc(myContactsRef, {
       id: fromKey,
+      uid: fromKey,
       email: fromEmail,
       displayName: fromName,
       photoURL: '',
@@ -270,6 +289,7 @@ export class ApiService {
     const theirContactsRef = doc(db, 'users', fromKey, 'contacts', currKey);
     await setDoc(theirContactsRef, {
       id: currKey,
+      uid: currKey,
       email: currUser.email,
       displayName: currUser.displayName || currUser.email.split('@')[0],
       photoURL: '',
@@ -279,6 +299,7 @@ export class ApiService {
     // 2. Asegurar sala directa
     await this.ensureDirectRoom(currUser, {
       id: fromKey,
+      uid: fromKey,
       email: fromEmail,
       displayName: fromName
     });
@@ -394,9 +415,7 @@ export class ApiService {
       accentColor: roomData.accentColor || iconInfo.accentColor
     };
 
-    return this.http.post(`${this.apiUrl}/rooms`, fullRoomData).pipe(
-      catchError(() => from(this.createRoomDirectFirebase(fullRoomData)))
-    );
+    return from(this.createRoomDirectFirebase(fullRoomData));
   }
 
   private async createRoomDirectFirebase(roomData: RoomData) {
