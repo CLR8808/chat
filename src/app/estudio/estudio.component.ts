@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import {
   IonContent,
   IonButton,
-  IonIcon
+  IonIcon,
+  IonModal
 } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
@@ -15,10 +16,13 @@ import {
   book,
   bookOutline,
   personOutline,
+  personAddOutline,
   logOutOutline,
   add,
   schoolOutline,
-  trashOutline
+  trashOutline,
+  closeOutline,
+  checkmarkOutline
 } from 'ionicons/icons';
 
 import { ApiService } from '../services/api.service';
@@ -32,13 +36,19 @@ import { ApiService } from '../services/api.service';
     CommonModule,
     IonContent,
     IonButton,
-    IonIcon
+    IonIcon,
+    IonModal
   ]
 })
 export class EstudioComponent implements OnInit, OnDestroy {
   activeTab = 'study';
   studyRooms: any[] = [];
   isLoading = false;
+
+  // Add Member Modal State
+  isMemberModalOpen = false;
+  selectedRoomForMember: any = null;
+  userContacts: any[] = [];
 
   // Subscriptions
   private roomsSub: any = null;
@@ -53,15 +63,19 @@ export class EstudioComponent implements OnInit, OnDestroy {
       book,
       bookOutline,
       personOutline,
+      personAddOutline,
       logOutOutline,
       add,
       schoolOutline,
-      trashOutline
+      trashOutline,
+      closeOutline,
+      checkmarkOutline
     });
   }
 
   ngOnInit() {
     this.loadStudyRooms();
+    this.loadContacts();
   }
 
   ngOnDestroy() {
@@ -84,8 +98,44 @@ export class EstudioComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadContacts() {
+    this.apiService.getContacts().subscribe({
+      next: (contacts) => {
+        this.userContacts = contacts || [];
+      }
+    });
+  }
+
   getUnreadCount(room: any): number {
     return this.apiService.getMyUnreadCount(room);
+  }
+
+  openAddMemberModal(room: any, event: Event) {
+    event.stopPropagation();
+    this.selectedRoomForMember = room;
+    this.isMemberModalOpen = true;
+    this.loadContacts();
+  }
+
+  closeMemberModal() {
+    this.isMemberModalOpen = false;
+    this.selectedRoomForMember = null;
+  }
+
+  isAlreadyMember(email: string): boolean {
+    if (!this.selectedRoomForMember || !this.selectedRoomForMember.members) return false;
+    return this.selectedRoomForMember.members.includes(email);
+  }
+
+  addMemberToStudyRoom(email: string) {
+    if (!this.selectedRoomForMember || !this.selectedRoomForMember.id) return;
+    this.apiService.addMemberToRoom(this.selectedRoomForMember.id, email).subscribe({
+      next: (res) => {
+        if (res && res.members) {
+          this.selectedRoomForMember.members = res.members;
+        }
+      }
+    });
   }
 
   logout() {

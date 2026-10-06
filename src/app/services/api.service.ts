@@ -462,6 +462,29 @@ export class ApiService {
     return { ...data, members };
   }
 
+  leaveRoom(roomId: string): Observable<any> {
+    return from(this.leaveRoomFirebase(roomId));
+  }
+
+  private async leaveRoomFirebase(roomId: string) {
+    const curr = this.getCurrentUser();
+    if (!curr) throw new Error('No autenticado');
+    const roomDocRef = doc(db, 'rooms', roomId);
+    const snap = await getDoc(roomDocRef);
+    if (!snap.exists()) throw new Error('Sala no encontrada');
+
+    const data = snap.data();
+    const members: string[] = (data['members'] || []).filter((m: string) => m !== curr.email);
+
+    if (members.length === 0) {
+      await deleteDoc(roomDocRef);
+      return { success: true, deleted: true };
+    } else {
+      await updateDoc(roomDocRef, { members });
+      return { success: true, members };
+    }
+  }
+
   // ==================================================================
   // ELIMINACIÓN DE SALAS / CHATS, CONTACTOS Y MENSAJES
   // ==================================================================

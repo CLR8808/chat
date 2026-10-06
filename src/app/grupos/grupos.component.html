@@ -99,14 +99,14 @@
           <p>No tienes contactos guardados para añadir. Ve a la pantalla Chats y pulsa + para agregar contactos primero.</p>
         </div>
 
-        <div class="contacts-list">
+        <div class="contacts-list" *ngIf="userContacts.length > 0">
           <div *ngFor="let c of userContacts" class="contact-item">
             <div class="avatar-circle">
-              <ion-icon name="person-outline"></ion-icon>
+              <span>{{ (c.displayName || 'U').charAt(0).toUpperCase() }}</span>
             </div>
             <div class="contact-info">
-              <h5>{{ c.displayName || c.email }}</h5>
-              <p>{{ c.email }}</p>
+              <h5>{{ c.displayName || 'Contacto' }}</h5>
+              <p class="contact-handle">@{{ c.displayName || 'usuario' }}</p>
             </div>
 
             <button

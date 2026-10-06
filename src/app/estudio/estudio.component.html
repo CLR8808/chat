@@ -58,20 +58,80 @@
               <h4>{{ room.name }}</h4>
               <span *ngIf="getUnreadCount(room) > 0" class="unread-dot"></span>
             </div>
-            <button class="delete-btn" (click)="deleteRoom(room, $event)" title="Eliminar sala">
-              <ion-icon name="trash-outline"></ion-icon>
-            </button>
+            <div class="room-top-right">
+              <span class="meta-tag">📖 Estudio</span>
+              <button class="delete-btn" (click)="deleteRoom(room, $event)" title="Eliminar sala">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
           </div>
+
           <p class="room-desc">{{ room.description || 'Sin descripción' }}</p>
-          <div class="room-meta">
-            <span class="meta-tag">📖 Estudio</span>
-            <span class="meta-members" *ngIf="room.members">{{ room.members.length }} miembro(s)</span>
+
+          <div class="room-footer-row">
+            <span class="meta-members">
+              <ion-icon name="person-outline"></ion-icon>
+              {{ room.members ? room.members.length : 1 }} miembro(s)
+            </span>
+
+            <button
+              class="add-member-btn"
+              (click)="openAddMemberModal(room, $event)">
+              <ion-icon name="person-add-outline"></ion-icon>
+              Agregar miembro
+            </button>
           </div>
         </div>
 
       </div>
     </div>
   </div>
+
+  <!-- Modal para Agregar Miembro a Sala de Estudio -->
+  <ion-modal [isOpen]="isMemberModalOpen" (didDismiss)="closeMemberModal()">
+    <ng-template>
+      <div class="modal-header">
+        <div class="modal-title">
+          <ion-icon name="person-add-outline"></ion-icon>
+          <h3>Agregar Miembro</h3>
+        </div>
+        <button class="modal-close-btn" (click)="closeMemberModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-sub">
+          Añadir miembro a la sala de estudio <b>{{ selectedRoomForMember?.name }}</b> desde tus contactos:
+        </p>
+
+        <div *ngIf="userContacts.length === 0" class="no-contacts">
+          <p>No tienes contactos guardados para añadir. Ve a la pantalla Chats y pulsa + para agregar contactos primero.</p>
+        </div>
+
+        <div class="contacts-list" *ngIf="userContacts.length > 0">
+          <div *ngFor="let c of userContacts" class="contact-item">
+            <div class="avatar-circle">
+              <span>{{ (c.displayName || 'U').charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="contact-info">
+              <h5>{{ c.displayName || 'Contacto' }}</h5>
+              <p class="contact-handle">@{{ c.displayName || 'usuario' }}</p>
+            </div>
+
+            <button
+              class="action-add-btn"
+              [class.added]="isAlreadyMember(c.email)"
+              (click)="addMemberToStudyRoom(c.email)"
+              [disabled]="isAlreadyMember(c.email)">
+              <ion-icon [name]="isAlreadyMember(c.email) ? 'checkmark-outline' : 'person-add-outline'"></ion-icon>
+              {{ isAlreadyMember(c.email) ? 'En la sala' : 'Añadir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
   <!-- Bottom Navigation Bar / Barra de tareas -->
   <div class="bottom-nav">

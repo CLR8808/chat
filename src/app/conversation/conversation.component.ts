@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonContent, IonIcon, IonInput } from '@ionic/angular/standalone';
+import { IonContent, IonIcon, IonInput, IonModal } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   arrowBack,
@@ -13,7 +13,11 @@ import {
   ellipsisVertical,
   checkmarkDoneOutline,
   checkmarkOutline,
-  trashOutline
+  trashOutline,
+  logOutOutline,
+  closeOutline,
+  peopleOutline,
+  shieldCheckmarkOutline
 } from 'ionicons/icons';
 
 import { db } from '../../environments/environment';
@@ -36,7 +40,7 @@ import {
   templateUrl: './conversation.component.html',
   styleUrls: ['./conversation.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonIcon, IonInput]
+  imports: [CommonModule, FormsModule, IonContent, IonIcon, IonInput, IonModal]
 })
 export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecked {
 
@@ -57,6 +61,11 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   isNotContact = false;
   contactRequestSent = false;
   otherUserEmail = '';
+
+  // Options Menu & Add Member Modal
+  isOptionsMenuOpen = false;
+  isAddMemberModalOpen = false;
+  userContacts: any[] = [];
 
   // Typing & Message Delete
   isOtherTyping = false;
@@ -80,7 +89,12 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       personAddOutline,
       ellipsisVertical,
       checkmarkDoneOutline,
-      checkmarkOutline
+      checkmarkOutline,
+      trashOutline,
+      logOutOutline,
+      closeOutline,
+      peopleOutline,
+      shieldCheckmarkOutline
     });
   }
 
@@ -94,6 +108,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     }
 
     this.loadRoomAndMessages();
+    this.loadContacts();
   }
 
   ngAfterViewChecked() {
@@ -113,6 +128,14 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     if (this.roomId) {
       this.apiService.setTypingStatus(this.roomId, false).subscribe();
     }
+  }
+
+  loadContacts() {
+    this.apiService.getContacts().subscribe({
+      next: (contacts) => {
+        this.userContacts = contacts || [];
+      }
+    });
   }
 
   async loadRoomAndMessages() {
@@ -174,6 +197,62 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       });
       this.shouldScrollToBottom = true;
     });
+  }
+
+  toggleOptionsMenu(event?: Event) {
+    if (event) event.stopPropagation();
+    this.isOptionsMenuOpen = !this.isOptionsMenuOpen;
+  }
+
+  closeOptionsMenu() {
+    this.isOptionsMenuOpen = false;
+  }
+
+  openAddMemberModal() {
+    this.isOptionsMenuOpen = false;
+    this.isAddMemberModalOpen = true;
+    this.loadContacts();
+  }
+
+  closeAddMemberModal() {
+    this.isAddMemberModalOpen = false;
+  }
+
+  isAlreadyMember(email: string): boolean {
+    if (!this.roomData || !this.roomData.members) return false;
+    return this.roomData.members.includes(email);
+  }
+
+  addMemberToGroup(email: string) {
+    if (!this.roomId || this.isAlreadyMember(email)) return;
+    this.apiService.addMemberToRoom(this.roomId, email).subscribe({
+      next: (res) => {
+        if (res && res.members) {
+          this.roomData.members = res.members;
+          this.memberCount = res.members.length;
+        }
+      }
+    });
+  }
+
+  leaveGroup() {
+    this.isOptionsMenuOpen = false;
+    if (confirm(`¿Estás seguro de que deseas abandonar "${this.contactName}"?`)) {
+      this.apiService.leaveRoom(this.roomId).subscribe({
+        next: () => {
+          if (this.roomData.category === 'estudio') {
+            this.router.navigate(['/estudio']);
+          } else if (this.roomData.category === 'direct') {
+            this.router.navigate(['/chats']);
+          } else {
+            this.router.navigate(['/grupos']);
+          }
+        },
+        error: (err) => {
+          console.error('Error al abandonar grupo:', err);
+        }
+      });
+    }
   }
 
   sendAddContactRequest() {

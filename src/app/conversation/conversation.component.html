@@ -24,8 +24,30 @@
       </div>
     </div>
 
-    <button class="options-btn">
+    <!-- Botón 3 Puntos -->
+    <button class="options-btn" (click)="toggleOptionsMenu($event)" title="Opciones">
       <ion-icon name="ellipsis-vertical"></ion-icon>
+    </button>
+  </div>
+
+  <!-- Overlay para cerrar menú de opciones al tocar fuera -->
+  <div class="menu-backdrop" *ngIf="isOptionsMenuOpen" (click)="closeOptionsMenu()"></div>
+
+  <!-- Menú flotante de opciones (3 puntos) -->
+  <div class="options-dropdown" *ngIf="isOptionsMenuOpen">
+    <button class="dropdown-item" *ngIf="isGroup" (click)="openAddMemberModal()">
+      <ion-icon name="person-add-outline"></ion-icon>
+      <span>Agregar miembros</span>
+    </button>
+
+    <button class="dropdown-item danger" *ngIf="isGroup" (click)="leaveGroup()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      <span>Abandonar grupo</span>
+    </button>
+
+    <button class="dropdown-item" *ngIf="!isGroup && isNotContact" (click)="sendAddContactRequest()">
+      <ion-icon name="person-add-outline"></ion-icon>
+      <span>Agregar a contactos</span>
     </button>
   </div>
 
@@ -70,12 +92,12 @@
 
         <!-- Avatar del otro usuario (solo en mensajes recibidos) -->
         <div class="msg-avatar" *ngIf="!msg.isOwn">
-          <span>{{ (msg.senderName || msg.senderEmail || '?').charAt(0).toUpperCase() }}</span>
+          <span>{{ (msg.senderName || '?').charAt(0).toUpperCase() }}</span>
         </div>
 
         <div class="bubble" [class.own-bubble]="msg.isOwn" [class.other-bubble]="!msg.isOwn" (click)="toggleMessageOptions(msg, $event)">
-          <!-- Nombre del remitente en grupos (solo mensajes ajenos) -->
-          <span class="sender-name" *ngIf="!msg.isOwn && isGroup">{{ msg.senderName || msg.senderEmail }}</span>
+          <!-- Nombre del remitente en grupos (solo mensajes ajenos, sin correo) -->
+          <span class="sender-name" *ngIf="!msg.isOwn && isGroup">@{{ msg.senderName || 'Miembro' }}</span>
           <p class="msg-text">{{ msg.text }}</p>
           <div class="msg-meta">
             <span class="msg-time">{{ formatTime(msg.sentAtDate) }}</span>
@@ -115,5 +137,51 @@
       <ion-icon name="send"></ion-icon>
     </button>
   </div>
+
+  <!-- Modal para Agregar Miembros al Grupo -->
+  <ion-modal [isOpen]="isAddMemberModalOpen" (didDismiss)="closeAddMemberModal()">
+    <ng-template>
+      <div class="modal-header">
+        <div class="modal-title">
+          <ion-icon name="person-add-outline"></ion-icon>
+          <h3>Agregar Miembro</h3>
+        </div>
+        <button class="modal-close-btn" (click)="closeAddMemberModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-sub">
+          Añadir contactos al grupo <b>{{ contactName }}</b>:
+        </p>
+
+        <div *ngIf="userContacts.length === 0" class="no-contacts">
+          <p>No tienes contactos registrados para añadir. Ve a la pantalla principal y pulsa + para agregar contactos.</p>
+        </div>
+
+        <div class="contacts-list" *ngIf="userContacts.length > 0">
+          <div *ngFor="let c of userContacts" class="contact-item">
+            <div class="avatar-circle">
+              <span>{{ (c.displayName || 'U').charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="contact-info">
+              <h5>{{ c.displayName || 'Usuario' }}</h5>
+              <p class="contact-handle">@{{ c.displayName || 'usuario' }}</p>
+            </div>
+
+            <button
+              class="action-add-btn"
+              [class.added]="isAlreadyMember(c.email)"
+              (click)="addMemberToGroup(c.email)"
+              [disabled]="isAlreadyMember(c.email)">
+              <ion-icon [name]="isAlreadyMember(c.email) ? 'checkmark-outline' : 'person-add-outline'"></ion-icon>
+              {{ isAlreadyMember(c.email) ? 'En el grupo' : 'Añadir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
 </ion-content>

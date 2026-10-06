@@ -95,7 +95,7 @@
               <div class="member-avatar">
                 <ion-icon name="person-outline"></ion-icon>
               </div>
-              <span class="member-name">{{ c.displayName || c.email }}</span>
+              <span class="member-name">{{ c.displayName || 'Contacto' }}</span>
               <ion-icon [name]="isMemberSelected(c.email) ? 'checkmark-outline' : 'add'" class="check-icon"></ion-icon>
             </div>
           </div>
